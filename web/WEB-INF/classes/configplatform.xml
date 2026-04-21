@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8' ?> 
+<!-- was: <?xml version="1.0" encoding="EUC-KR" standalone="no"?> -->
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+    <comment>ITHows Properties </comment>
+    <entry key="site_domain">[SSF2026 Location]</entry>
+
+    
+    <entry key="temp_dir">temp/</entry>
+    <entry key="user_image_dir">images</entry>
+    <entry key="resource_dir">resource</entry>
+    <entry key="config_image_upload_url">uploadImages/</entry>
+    <entry key="context_path">SSF2026/</entry>
+    <entry key="context_dir">/locationService/tomcat/tomcatweb/webapps/SSF2026/</entry>
+    <entry key="context_linux_dir">/locationService/tomcat/tomcatweb/webapps/SSF2026/</entry>
+    <entry key="context_win_dir">C:\\03_work\\SSF2026\\build\\web\\</entry>
+    <entry key="config_file_upload_url">uploadFiles/</entry>
+    <entry key="config_devlog_path">devlogs/</entry>
+    <entry key="config_testdata_url">data/</entry>
+    <entry key="config_errorlog_path">errorlogs/</entry>
+
+    <entry key="python_script_dir">C:\\03_work\\SSF2026\\build\\web\\python_process\\</entry>
+    <entry key="python_temp_dir">C:\\03_work\\SSF2026\\build\\web\\python_process\\temp\\</entry>
+    <entry key="python_command">C:\\Python310\\python.exe</entry>
+    
+    <entry key="common_api_key">sox_api_key_2018</entry>
+
+       
+
+</properties>
