@@ -27,12 +27,22 @@ import org.json.JSONObject;
  *
  * 설정 (configplatform.xml 에서 선택적 지정):
  *   <pre>
+ *   &lt;!-- python_command 는 OS 무관 단일 키 --&gt;
  *   &lt;entry key="python_command"&gt;python3&lt;/entry&gt;
- *   &lt;entry key="python_script_dir"&gt;/opt/myapp/python_process&lt;/entry&gt;
- *   &lt;entry key="python_temp_dir"&gt;/tmp/myapp-py&lt;/entry&gt;
+ *
+ *   &lt;!-- 디렉토리는 OS 별 컨텍스트 루트(context_win_dir / context_dir) 하위의 "상대 경로" 로 지정.
+ *        실제 절대 경로 = AppConfig.getContextPath() + 설정값
+ *        (Windows 면 context_win_dir, 그 외엔 context_dir 가 자동 선택됨)        --&gt;
+ *   &lt;entry key="python_script_dir"&gt;python_process/&lt;/entry&gt;
+ *   &lt;entry key="python_temp_dir"  &gt;python_process/temp/&lt;/entry&gt;
  *   </pre>
  *
- * 지정되지 않으면 기본값을 사용한다:
+ * 디렉토리 경로 해석:
+ *   1. 설정값이 절대 경로면 그대로 사용 (override 가능)
+ *   2. 상대 경로면 AppConfig.getContextPath() 와 결합 → OS 별 컨텍스트 루트 하위로 해석
+ *   3. 설정값이 없거나 컨텍스트 루트도 비어 있으면 코드 기본값
+ *
+ * 코드 기본값:
  *   - python_command    : "python"
  *   - python_script_dir : $user.dir/python_process
  *   - python_temp_dir   : java.io.tmpdir
@@ -67,11 +77,11 @@ public class PythonCallUtil {
             return error("scriptName is required");
         }
 
-        // 1. 설정 해석
-        String pythonCmd = resolveConfig("python_command",    "python");
-        String scriptDir = resolveConfig("python_script_dir",
+        // 1. 설정 해석 — 디렉토리는 OS 별 컨텍스트 루트(AppConfig.getContextPath()) 하위로 결합
+        String pythonCmd = resolveConfig("python_command", "python");
+        String scriptDir = resolveContextDir("python_script_dir",
                 System.getProperty("user.dir") + File.separator + "python_process");
-        String tempDir   = resolveConfig("python_temp_dir",
+        String tempDir   = resolveContextDir("python_temp_dir",
                 System.getProperty("java.io.tmpdir"));
 
         if (!scriptName.toLowerCase().endsWith(".py")) {
@@ -101,6 +111,7 @@ public class PythonCallUtil {
             String reqText = (requestJson == null ? new JSONObject() : requestJson).toString();
             Files.write(reqFile.toPath(), reqText.getBytes(StandardCharsets.UTF_8));
 
+            
             // 5. 파이썬 프로세스 실행
             ProcessBuilder pb = new ProcessBuilder(
                     pythonCmd,
@@ -133,6 +144,7 @@ public class PythonCallUtil {
             }
 
             String body = new String(Files.readAllBytes(resFile.toPath()), StandardCharsets.UTF_8);
+            
             try {
                 return new JSONObject(body);
             } catch (Exception jsonEx) {
@@ -175,15 +187,16 @@ public class PythonCallUtil {
     public static JSONObject getDiagnosticInfo() {
         JSONObject info = new JSONObject();
         try {
-            String pythonCmd = resolveConfig("python_command",    "python");
-            String scriptDir = resolveConfig("python_script_dir",
+            String pythonCmd = resolveConfig("python_command", "python");
+            String scriptDir = resolveContextDir("python_script_dir",
                     System.getProperty("user.dir") + File.separator + "python_process");
-            String tempDir   = resolveConfig("python_temp_dir",
+            String tempDir   = resolveContextDir("python_temp_dir",
                     System.getProperty("java.io.tmpdir"));
 
             info.put("python_command",    pythonCmd);
             info.put("python_script_dir", scriptDir);
             info.put("python_temp_dir",   tempDir);
+            info.put("context_path",      safeContextPath());
             info.put("user.dir",          System.getProperty("user.dir"));
             info.put("os.name",           System.getProperty("os.name"));
 
@@ -212,8 +225,18 @@ public class PythonCallUtil {
         return info;
     }
 
-    /** python --version 을 5초 타임아웃으로 실행해 stdout 한 줄을 회수. 실패 시 오류 메시지. */
+    /** python --version probe 의 기본 타임아웃 (초). configplatform.xml 에서 override 가능. */
+    public static final int DEFAULT_VERSION_PROBE_TIMEOUT_SEC = 5;
+
+    /**
+     * python --version 을 실행해 stdout 한 줄을 회수. 실패 시 괄호 메시지.
+     *
+     * 타임아웃은 configplatform.xml 의 "python_version_timeout_sec" 값을 따른다.
+     * 설정이 없거나 파싱 실패면 {@link #DEFAULT_VERSION_PROBE_TIMEOUT_SEC}.
+     */
     private static String probePythonVersion(String pythonCmd) {
+        int timeoutSec = resolveConfigInt("python_version_timeout_sec",
+                DEFAULT_VERSION_PROBE_TIMEOUT_SEC);
         try {
             ProcessBuilder pb = new ProcessBuilder(pythonCmd, "--version");
             pb.redirectErrorStream(true);
@@ -224,9 +247,9 @@ public class PythonCallUtil {
             drainer.setDaemon(true);
             drainer.start();
 
-            if (!p.waitFor(5, TimeUnit.SECONDS)) {
+            if (!p.waitFor(timeoutSec, TimeUnit.SECONDS)) {
                 p.destroyForcibly();
-                return "(timed out)";
+                return "(timed out after " + timeoutSec + "s)";
             }
             try { drainer.join(500); } catch (InterruptedException ignore) {}
 
@@ -241,15 +264,66 @@ public class PythonCallUtil {
 
     /** AppConfig 에서 값 조회, 없거나 비었으면 defaultValue 반환. */
     private static String resolveConfig(String key, String defaultValue) {
+        String v = tryGetConfig(key);
+        return v != null ? v : defaultValue;
+    }
+
+    /** AppConfig 에서 정수 값 조회. 미존재/빈값/파싱 실패면 defaultValue. */
+    private static int resolveConfigInt(String key, int defaultValue) {
+        String v = tryGetConfig(key);
+        if (v == null) return defaultValue;
+        try {
+            return Integer.parseInt(v.trim());
+        } catch (NumberFormatException ignore) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * OS 별 컨텍스트 루트(AppConfig.getContextPath()) 하위의 디렉토리를 해석한다.
+     *
+     *   1. configKey 가 절대 경로면 그대로 사용 (override 가능)
+     *   2. 상대 경로면 컨텍스트 루트와 결합 — Windows 면 context_win_dir,
+     *      Linux 면 context_dir 가 자동 선택됨
+     *   3. configKey 가 없거나 컨텍스트 루트도 비어 있으면 defaultValue
+     */
+    private static String resolveContextDir(String configKey, String defaultValue) {
+        String subDir = tryGetConfig(configKey);
+        if (subDir == null) return defaultValue;
+
+        File subFile = new File(subDir);
+        if (subFile.isAbsolute()) {
+            return subFile.getAbsolutePath();
+        }
+
+        String ctxRoot = safeContextPath();
+        if (ctxRoot == null || ctxRoot.isEmpty()) {
+            // 컨텍스트 루트 미설정 + 상대 경로 → 안전하게 defaultValue
+            return defaultValue;
+        }
+        return new File(ctxRoot, subDir).getAbsolutePath();
+    }
+
+    /** AppConfig.getContextPath() 를 예외 안전하게 호출. 실패/미초기화면 null. */
+    private static String safeContextPath() {
+        try {
+            return AppConfig.getContextPath();
+        } catch (Exception ignore) {
+            return null;
+        }
+    }
+
+    /** AppConfig 에서 단일 키 조회. 미초기화/누락/빈 값이면 null. */
+    private static String tryGetConfig(String key) {
         try {
             if (AppConfig.has(key)) {
-                String v = AppConfig.getConf(key);
-                if (v != null && !v.isEmpty()) return v;
+                String s = AppConfig.getConf(key);
+                if (s != null && !s.isEmpty()) return s;
             }
         } catch (Exception ignore) {
             // AppConfig 미초기화 환경(단위 테스트 등)도 허용
         }
-        return defaultValue;
+        return null;
     }
 
     private static JSONObject error(String msg) {

@@ -68,9 +68,6 @@ public class CommonDoc {
     public static boolean collectdb_update = false;
     
     
-    
-    
- 
     static{
         
         

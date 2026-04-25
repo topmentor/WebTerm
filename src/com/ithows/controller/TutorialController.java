@@ -758,6 +758,8 @@ public class TutorialController {
             return "RESULT_RAW_JSON";
         }
 
+        
+        
         String     script     = body.optString("script", "tutorial_echo.py");
         JSONObject payload    = body.optJSONObject("payload");
         int        timeoutSec = body.optInt("timeoutSec", 30);
@@ -774,6 +776,7 @@ public class TutorialController {
             }
         }
 
+                
         JSONObject pyResult = PythonCallUtil.callPython(script, payload, timeoutSec);
 
         // 파이썬이 돌려준 result/msg 를 최상위로 승격, 전체 JSON 은 resultMap 에 raw 로 담음
@@ -870,4 +873,189 @@ public class TutorialController {
 
         return "RESULT_COMMON_JSON";
     }
+    
+    
+    ////////////////////////////////////////////////////////////////
+    ///// 
+    
+    
+    // 페이지로 전송 : 일반 케이스 
+    @ControllerMethodInfo(id = "/test/getPage.do")
+    public String getPage(HttpSession session, HttpServletRequest request, HttpServletResponse response, Object command) throws Exception {
+        SessionInfo sInfo = HttpUtil.getSessionInfo(session);
+
+        return "/test/testPage.jsp";
+    }
+
+    
+    // Text 바로 리턴(단순 텍스트 전송) : 텍스트 내용 대로 전송
+    @ControllerMethodInfo(id = "/test/getString.do")
+    public String getString(HttpSession session, HttpServletRequest request, HttpServletResponse response, Object command) throws Exception {
+        SessionInfo sInfo = HttpUtil.getSessionInfo(session);
+
+        String sendText = "Hello World";
+
+        JSONObject jObj = new JSONObject();
+        jObj.put("name", "Kim");
+        jObj.put("age", 10);
+        
+        sendText = jObj.toString();
+        
+        return sendText;
+
+    }
+
+    // 정해진 형식으로 전송 : ResultMap에 담아서 보내는 케이스 
+    @ControllerMethodInfo(id = "/test/getMap.do")
+    public String getMap(HttpSession session, HttpServletRequest request, HttpServletResponse response, Object command) throws Exception {
+        SessionInfo sInfo = HttpUtil.getSessionInfo(session);
+
+        String userIdStr = "";
+        String passwdStr = "";
+
+        if (request.getMethod().toLowerCase().equals("get")) {     //Get 방식 + 
+            userIdStr = HttpUtil.getParameterString(request, "user_id", "soxadmin");
+            passwdStr = HttpUtil.getParameterString(request, "user_pw", "");
+
+        } else {      
+            //Post 방식중 body에 json 텍스트로 넘길 때 (raw body)
+            // 폼형식으로 전송 ( application/x-www-form-urlencoded 형식 --> map 형식 (key=value)) 모두 처리  
+            
+            try {
+                
+                JSONObject paramMap = HttpUtil.getBodyJson(request);
+                if(paramMap != null){
+                    userIdStr = paramMap.getString("user_id");
+                    passwdStr = paramMap.getString("user_pw");
+                }else{
+                    System.out.println("body null");
+                    
+                    // POST 방식이라도 parameter가 JSON객체로 담긴 경우
+                    userIdStr = HttpUtil.getParameterString(request, "user_id", "soxadmin");
+                    passwdStr = HttpUtil.getParameterString(request, "user_pw", "");
+                }
+
+            } catch (Exception ex) {
+                System.out.println("Request Body Parse Error");
+                
+            }
+        }
+
+
+        System.out.println("userIdStr = " + userIdStr);
+        System.out.println("passwdStr = " + passwdStr);
+
+        if (passwdStr == null || passwdStr.equals("")) {
+            request.setAttribute("result", "NO");
+            request.setAttribute("msg", "No password");
+            return "RESULT_COMMON_JSON";
+        }
+
+        ResultMap currentMan = new ResultMap();
+        currentMan.put("name", "kim");
+        currentMan.put("id", userIdStr);
+        currentMan.put("pw", passwdStr);
+
+        if (currentMan == null) {
+            request.setAttribute("result", "NO");
+            request.setAttribute("msg", "fail");
+            return "RESULT_COMMON_JSON";
+        }
+
+        request.setAttribute("result", "OK");
+        request.setAttribute("msg", "Success");
+        request.setAttribute("resultMap", currentMan);
+
+        return "RESULT_COMMON_JSON";
+    }
+
+    
+    // 정해진 형식으로 전송 : ArrayList<ResultMap>에 담아서 보내는 케이스 
+    @ControllerMethodInfo(id = "/test/getList2.do")
+    public String getList2(HttpSession session, HttpServletRequest request, HttpServletResponse response, Object command) throws Exception {
+        SessionInfo sInfo = HttpUtil.getSessionInfo(session);
+
+        String userIdStr = "";
+        String passwdStr = "";
+
+        if (request.getMethod().toLowerCase().equals("get")) {     //Get 방식 + 
+            userIdStr = HttpUtil.getParameterString(request, "user_id", "soxadmin");
+            passwdStr = HttpUtil.getParameterString(request, "user_pw", "");
+
+        } else {      
+            try {
+                
+                //Post 방식중 body에 json 텍스트로 넘길 때 
+                JSONObject paramMap = HttpUtil.getBodyJson(request);
+                if(paramMap != null){
+                    userIdStr = paramMap.getString("user_id");
+                    passwdStr = paramMap.getString("user_pw");
+                }else{
+                    System.out.println("body null");
+                    userIdStr = HttpUtil.getParameterString(request, "user_id", "soxadmin");
+                    passwdStr = HttpUtil.getParameterString(request, "user_pw", "");
+                }
+
+            } catch (Exception ex) {
+                System.out.println("Request Param Parse Error");
+            }
+        }
+
+        System.out.println("userIdStr = " + userIdStr);
+        System.out.println("passwdStr = " + passwdStr);
+
+        if (passwdStr == null || passwdStr.equals("")) {
+            request.setAttribute("result", "NO");
+            request.setAttribute("msg", "No password");
+            return "RESULT_COMMON_JSON";
+        }
+
+        ResultMap currentMan = new ResultMap();
+        currentMan.put("name", "kim");
+        currentMan.put("id", userIdStr);
+        currentMan.put("pw", passwdStr);
+
+        ResultMap man = new ResultMap();
+        man.put("name", "park");
+        man.put("id", "p001");
+        man.put("pw", "***");
+
+        ArrayList<ResultMap> list = new ArrayList<>();
+        list.add(man);
+        list.add(currentMan);
+
+        if (list == null || list.size() == 0) {
+            request.setAttribute("result", "NO");
+            request.setAttribute("msg", "fail");
+            return "RESULT_COMMON_JSON";
+        }
+
+        request.setAttribute("result", "OK");
+        request.setAttribute("msg", "Success");
+        request.setAttribute("resultList", list);
+
+        return "RESULT_COMMON_JSON";
+    }
+
+    // 임의의 형식을 JSon에 담아 보내는 케이스 
+    // toString()으로 직접 내보내도 되지만 내용중에 jsp확장자가 포함될 수 있는 경우를 대비 
+    @ControllerMethodInfo(id = "/test/getUserJson.do")
+    public String getUserJson(HttpSession session, HttpServletRequest request, HttpServletResponse response, Object command) throws Exception {
+        SessionInfo sInfo = HttpUtil.getSessionInfo(session);
+
+        String userIdStr = "";
+        String passwdStr = "";
+        userIdStr = HttpUtil.getParameterString(request, "user_id", "soxadmin");
+        passwdStr = HttpUtil.getParameterString(request, "user_pw", "");
+
+        
+        JSONObject jObj = new JSONObject();
+        jObj.put("name", userIdStr);
+        jObj.put("age", 10);
+
+        request.setAttribute("result", jObj.toString());
+
+        return "RESULT_SIMPLE_JSON";
+    }
+    
 }
