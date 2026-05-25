@@ -18,8 +18,8 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import org.apache.commons.io.FilenameUtils;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 import org.json.JSONObject;
 
 /**

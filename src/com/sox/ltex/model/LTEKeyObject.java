@@ -3,8 +3,9 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.sox.ltex.util;
+package com.sox.ltex.model;
 
+import com.sox.ltex.util.LTEKeyParser;
 import com.ithows.ResultMap;
 import com.ithows.util.UtilString;
 import java.util.ArrayList;

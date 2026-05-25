@@ -2,7 +2,7 @@
  *  Copyright 2020. S.O.X. All rights reserved
  */
 
-package com.sox.ltex.util;
+package com.sox.ltex.model;
 
 import com.ithows.JdbcDao;
 import com.ithows.JdbcDao2;

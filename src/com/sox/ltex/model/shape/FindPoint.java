@@ -3,10 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.sox.ltex.util.shape;
+package com.sox.ltex.model.shape;
 
 import com.ithows.util.UtilString;
-import com.sox.ltex.util.QueryKeyObject;
+import com.sox.ltex.model.QueryKeyObject;
 import java.util.ArrayList;
 
 /**

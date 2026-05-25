@@ -5,8 +5,8 @@
 package com.sox.ltex.util;
 
 import com.ithows.ResultMap;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;

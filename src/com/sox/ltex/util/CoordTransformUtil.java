@@ -8,8 +8,8 @@ package com.sox.ltex.util;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.locationtech.proj4j.*;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 
 
 /**

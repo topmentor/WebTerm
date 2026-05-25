@@ -13,12 +13,12 @@ import com.ithows.util.UtilFile;
 import com.ithows.util.UtilJSON;
 import com.ithows.util.UtilString;
 import com.ithows.util.ZipUtils;
-import com.sox.ltex.util.primeConst;
+import com.sox.ltex.model.primeConst;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.MBR;
 
 /**
  *

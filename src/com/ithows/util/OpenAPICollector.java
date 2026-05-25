@@ -11,8 +11,8 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Date;
 import com.sox.ltex.CommonUtils;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 
 /**
  * Class OpenAPICollector

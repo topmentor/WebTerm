@@ -4,7 +4,7 @@
  */
 package com.sox.ltex.util;
 
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.MBR;
 import java.util.*;
 
 /**

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.sox.ltex.util;
+package com.sox.ltex.model;
 
 import java.io.PrintStream;
 import org.json.JSONException;

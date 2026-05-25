@@ -7,8 +7,9 @@ package com.sox.ltex.util;
 
 
 import com.ithows.ResultMap;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.ShapeType;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 import java.util.ArrayList;
 import java.util.Random;
 import org.locationtech.jts.geom.Coordinate;

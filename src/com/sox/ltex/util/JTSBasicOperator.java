@@ -10,6 +10,7 @@ package com.sox.ltex.util;
  * 
  * @author Roi Kim <S.O.X Co. Ltd.>
  */
+import com.sox.ltex.model.ShapeType;
 import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.*;
 
@@ -20,8 +21,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 
 public class JTSBasicOperator {
 

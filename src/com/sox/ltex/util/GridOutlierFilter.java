@@ -2,8 +2,8 @@ package com.sox.ltex.util;
 
 import com.ithows.ResultMap;
 import com.ithows.util.UtilJSON;
-import com.sox.ltex.util.shape.GPoint;
-import com.sox.ltex.util.shape.MBR;
+import com.sox.ltex.model.shape.GPoint;
+import com.sox.ltex.model.shape.MBR;
 import org.json.JSONArray;
 
 import java.util.ArrayList;

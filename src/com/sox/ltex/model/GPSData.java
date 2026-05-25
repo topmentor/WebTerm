@@ -3,12 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.sox.ltex.util;
+package com.sox.ltex.model;
 
+import com.sox.ltex.util.CoordTransformUtil;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
-import com.sox.ltex.util.shape.GPoint;
+import com.sox.ltex.model.shape.GPoint;
 import org.json.JSONException;
 import org.json.JSONObject;
 

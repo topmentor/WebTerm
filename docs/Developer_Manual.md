@@ -16,16 +16,17 @@
 2. [개발 환경 구성](#2-개발-환경-구성)
 3. [새 프로젝트 생성](#3-새-프로젝트-생성)
 4. [기본 설정](#4-기본-설정)
-5. [Step 1 — 첫 컨트롤러 만들기 (Hello World)](#step-1--첫-컨트롤러-만들기-hello-world)
-6. [Step 2 — DAO 레이어 작성](#step-2--dao-레이어-작성)
-7. [Step 3 — 요청 파라미터 처리](#step-3--요청-파라미터-처리)
-8. [Step 4 — 응답 형식과 JSP 뷰](#step-4--응답-형식과-jsp-뷰)
-9. [Step 5 — 보안 적용 (로그인, API Key)](#step-5--보안-적용-로그인-api-key)
-10. [Step 6 — API 문서화 (Swagger)](#step-6--api-문서화-swagger)
-11. [Step 7 — 빌드 및 실행](#step-7--빌드-및-실행)
-12. [Step 8 — 파이썬 스크립트 연동](#step-8--파이썬-스크립트-연동)
-13. [트러블슈팅](#트러블슈팅)
-14. [체크리스트](#체크리스트)
+5. [TutorialController — 패턴 카탈로그](#5-tutorialcontroller--패턴-카탈로그)
+6. [Step 1 — 첫 컨트롤러 만들기 (Hello World)](#step-1--첫-컨트롤러-만들기-hello-world)
+7. [Step 2 — DAO 레이어 작성](#step-2--dao-레이어-작성)
+8. [Step 3 — 요청 파라미터 처리](#step-3--요청-파라미터-처리)
+9. [Step 4 — 응답 형식과 JSP 뷰](#step-4--응답-형식과-jsp-뷰)
+10. [Step 5 — 보안 적용 (로그인, API Key)](#step-5--보안-적용-로그인-api-key)
+11. [Step 6 — API 문서화 (Swagger)](#step-6--api-문서화-swagger)
+12. [Step 7 — 빌드 및 실행](#step-7--빌드-및-실행)
+13. [Step 8 — 파이썬 스크립트 연동](#step-8--파이썬-스크립트-연동)
+14. [트러블슈팅](#트러블슈팅)
+15. [체크리스트](#체크리스트)
 
 ---
 
@@ -152,12 +153,17 @@ MyApp/
     <entry key="config_devlog_path">devlogs/</entry>
     <entry key="config_errorlog_path">errorlogs/</entry>
 
+    <!-- OS 별 컨텍스트 루트 — AppConfig.getContextPath() 가 OS 에 따라 자동 분기.
+         파이썬 연동 등 컨텍스트 루트 기준 상대경로를 쓰는 곳에서 사용됨. -->
+    <entry key="context_win_dir">C:\03_work\MyApp\build\web\</entry>
+    <entry key="context_dir">/locationService/tomcat/tomcatweb/webapps/MyApp/</entry>
+
     <!-- @ApiKeyRequired 검증에 사용되는 공통 API Key -->
     <entry key="common_api_key">여러분의_API_키</entry>
 </properties>
 ```
 
-값은 코드에서 `AppConfig.getConf("context_path")` 로 읽습니다.
+값은 코드에서 `AppConfig.getConf("context_path")` 로 읽습니다. OS 별 컨텍스트 루트는 `AppConfig.getContextPath()` 한 메소드로 가져옵니다 (Windows → `context_win_dir`, 그 외 → `context_dir`).
 
 ### 4.3 서블릿 등록 (`web/WEB-INF/web.xml`)
 
@@ -220,6 +226,52 @@ MyApp/
     <session-timeout>180</session-timeout>
 </session-config>
 ```
+
+---
+
+## 5. TutorialController — 패턴 카탈로그
+
+이 프로젝트에는 SSF 의 핵심 패턴을 한 클래스에 모아 둔 [TutorialController](../src/com/ithows/controller/TutorialController.java) 가 이미 작성되어 있습니다. 아래 Step 1 ~ 8 의 모든 패턴이 그 안에 동작하는 코드로 들어 있으니, **새로 무언가를 만들기 전에 매핑되는 엔드포인트 코드를 먼저 열어보는 것**을 권장합니다.
+
+### 5.1 전제 테이블
+
+```sql
+CREATE TABLE tutorial_item (
+    itemId      VARCHAR(32)   PRIMARY KEY,
+    name        VARCHAR(100)  NOT NULL,
+    category    VARCHAR(50),
+    price       INT           DEFAULT 0,
+    active      TINYINT       DEFAULT 1,
+    createTime  DATETIME      DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 5.2 엔드포인트 목록
+
+| # | URL | Method | 패턴 | 다루는 Step |
+|---|-----|--------|------|------------|
+| 1 | `/tutorial/ping.do`              | GET  | 헬스체크 / `RESULT_PAGE_JSON`              | Step 1 |
+| 2 | `/tutorial/echo.do`              | GET  | `HttpUtil.getParameterXxx` 타입별 파라미터 추출 | Step 3 |
+| 3 | `/tutorial/getItem.do`           | GET  | 단건 조회 — `JdbcDao.queryForMap`           | Step 2 |
+| 4 | `/tutorial/getList.do`           | GET  | 목록 조회 — `resultList` 응답               | Step 2 / 4 |
+| 5 | `/tutorial/searchItems.do`       | GET  | 검색 + 페이지네이션 (total / pageNo / pageSize) | Step 3 |
+| 6 | `/tutorial/createItem.do`        | POST | JSON body 로 INSERT                         | Step 3 |
+| 7 | `/tutorial/updateItem.do`        | POST | JSON body 로 UPDATE                         | Step 3 |
+| 8 | `/tutorial/deleteItem.do`        | POST | soft delete (`active=0`) + GET/POST 동시 지원 | Step 3 |
+| 9 | `/tutorial/createItemsBatch.do`  | POST | 트랜잭션 — `insertItemsAtomic` 일괄 삽입     | Step 2 |
+| 10 | `/tutorial/exportItems.do`      | GET  | DB → 임시 JSON 파일 → `sendBinaryFileToClient` | Step 4 |
+| 11 | `/tutorial/uploadFile.do`       | POST | multipart/form-data 단일 파일 업로드 + 안전 파일명 | — |
+| 12 | `/tutorial/downloadFile.do`     | GET  | 업로드된 파일 다운로드 + path traversal 방어    | — |
+| 13 | `/tutorial/callPython.do`       | POST | 파이썬 스크립트 대리 호출 (`PythonCallUtil`)   | Step 8 |
+| 13b | `/tutorial/pythonInfo.do`      | GET  | 파이썬 환경 진단 (`getDiagnosticInfo`)        | Step 8 |
+| 14 | `/tutorial/secureApi.do`        | GET  | `@ApiKeyRequired` — `X-API-Key` 헤더 인증     | Step 5 |
+| 15 | `/tutorial/adminPing.do`        | GET  | 로그인 + `requiredSecurityLevel = 1`          | Step 5 |
+
+### 5.3 활용 가이드
+
+- **Step 1 ~ 8 학습 중에 막히면** — 위 표에서 같은 패턴을 가진 엔드포인트를 찾아 [TutorialController.java](../src/com/ithows/controller/TutorialController.java) 의 해당 메서드를 참조하세요. 모든 메서드에 의도/주의사항 주석이 달려 있습니다.
+- **자체 컨트롤러를 만들 때** — TutorialController 의 가까운 메서드를 복사해 시작하면 어노테이션·반환값·에러 처리 패턴이 자연스럽게 따라옵니다.
+- **Swagger 문서 확인** — 이 모든 엔드포인트는 `@ApiInfo` 가 붙어 있어, 서버 실행 후 [/docs/](http://localhost:8088/SSF2026/docs/) 에서 인터랙티브하게 호출해볼 수 있습니다 (Step 6 참조).
 
 ---
 
@@ -889,48 +941,53 @@ public String analyzeText(HttpSession session, HttpServletRequest request,
 
 ### 8.5 환경 설정 — [configplatform.xml](../web/WEB-INF/classes/configplatform.xml)
 
-선택적 설정 (미지정 시 기본값 사용):
-
 ```xml
+<!-- 파이썬 실행 명령 (OS 무관 단일 키) -->
 <entry key="python_command">C:\Python310\python.exe</entry>
-<entry key="python_script_dir">C:\03_work\MyApp\python_process</entry>
-<entry key="python_temp_dir">C:\temp\myapp-py</entry>
+
+<!-- 디렉토리는 OS 별 컨텍스트 루트(context_win_dir / context_dir) 하위의 "상대 경로" 로 지정.
+     실제 절대 경로 = AppConfig.getContextPath() + 아래 값 -->
+<entry key="python_script_dir">python_process/</entry>
+<entry key="python_temp_dir">python_process/temp/</entry>
+
+<!-- python --version 프로브 타임아웃(초). 미설정 시 5초. -->
+<entry key="python_version_timeout_sec">5</entry>
 ```
 
 | 키 | 기본값 | 설명 |
 |----|--------|------|
-| `python_command` | `python` | 파이썬 실행 명령 (PATH에 없으면 **절대경로** 권장) |
-| `python_script_dir` | `$user.dir/python_process` | 스크립트가 저장된 폴더 |
-| `python_temp_dir` | `java.io.tmpdir` | 요청/응답 임시 파일 저장 폴더 |
+| `python_command` | `python` | 파이썬 실행 명령. PATH에 없으면 **절대경로** 권장 |
+| `python_script_dir` | `$user.dir/python_process` | 스크립트 폴더. 상대경로면 `AppConfig.getContextPath()` 와 결합 |
+| `python_temp_dir` | `java.io.tmpdir` | 요청/응답 임시 파일 폴더. 상대경로면 컨텍스트 루트와 결합 |
+| `python_version_timeout_sec` | `5` | `pythonInfo.do` 가 `python --version` 을 호출할 때의 타임아웃 |
 
-### 8.6 ⚠️ 외부 Tomcat 배포 시 반드시 주의할 점
+### 8.6 OS 별 경로 자동 분기
 
-외부 Tomcat 에서 실행하면 JVM의 `user.dir` 은 보통 `{CATALINA_HOME}\bin` 이 됩니다 (프로젝트 루트가 아님).
+`python_script_dir` / `python_temp_dir` 의 값이 **상대 경로**이면 [PythonCallUtil](../src/com/ithows/util/PythonCallUtil.java) 가 [AppConfig.getContextPath()](../src/com/ithows/AppConfig.java) 와 결합해 절대 경로로 만듭니다. `getContextPath()` 는 OS 에 따라 자동 분기됩니다:
 
-이 때문에 `python_script_dir` 을 **상대경로**로 두면 스크립트를 찾지 못합니다:
+- Windows → `context_win_dir`
+- Linux → `context_dir`
+
+따라서 같은 `configplatform.xml` 한 벌로 양 OS 에 배포해도 동작합니다:
 
 ```xml
-<!-- ❌ 외부 Tomcat 에서 동작 안 함 -->
+<!-- 컨텍스트 루트 (이미 존재하는 키) -->
+<entry key="context_win_dir">C:\03_work\SSF2026\build\web\</entry>
+<entry key="context_dir">/locationService/tomcat/tomcatweb/webapps/SSF2026/</entry>
+
+<!-- 파이썬은 상대 경로로 한 번만 -->
 <entry key="python_script_dir">python_process/</entry>
-<!-- → 실제 해석: C:\Tomcat9\bin\python_process\  (없음!) -->
+<entry key="python_temp_dir">python_process/temp/</entry>
 ```
 
-반드시 **절대경로**로 지정해야 합니다:
+| OS | 결합 결과 (예: `python_script_dir`) |
+|----|-------------------------------------|
+| Windows | `C:\03_work\SSF2026\build\web\python_process\` |
+| Linux   | `/locationService/tomcat/tomcatweb/webapps/SSF2026/python_process/` |
 
-```xml
-<!-- ✅ 권장 -->
-<entry key="python_script_dir">C:\03_work\MyApp\python_process</entry>
-```
+**절대 경로로 override 하고 싶을 때**는 그대로 절대 경로를 넣어주면 컨텍스트 루트와 결합하지 않고 그 값이 그대로 사용됩니다.
 
-**배포 환경에 따른 권장 위치:**
-
-| 환경 | python_script_dir 권장값 | 이유 |
-|------|-------------------------|------|
-| 외부 Tomcat (운영) | 웹앱 외부의 고정 경로 — 예: `C:\myapp\python_process` | 웹앱 재배포 시 덮어써지지 않음 |
-| 외부 Tomcat (개발) | 프로젝트 루트 — 예: `C:\03_work\MyApp\python_process` | 스크립트 수정 즉시 반영 |
-| Embedded Tomcat | 상대경로(`python_process/`) 가능 | `user.dir`이 프로젝트 루트 |
-
-**`python_command` 도 마찬가지**로 PATH 검색에 의존하지 말고 **설치된 파이썬 절대경로**를 지정하는 것이 혼란을 줄입니다.
+> 💡 외부 Tomcat 의 `user.dir` 은 보통 `{CATALINA_HOME}\bin` 이지만, 위 방식은 컨텍스트 루트(`AppConfig.getContextPath()`) 기준으로 해석하므로 영향을 받지 않습니다. `user.dir` 은 컨텍스트 루트와 설정값이 **둘 다 비어 있을 때만** 마지막 fallback 으로 쓰입니다.
 
 ### 8.7 진단 — 동작이 이상할 때
 
@@ -944,8 +1001,9 @@ GET /tutorial/pythonInfo.do
 ```json
 {
     "python_command":    "C:\\Python310\\python.exe",
-    "python_script_dir": "C:\\03_work\\MyApp\\python_process",
-    "python_temp_dir":   "C:\\temp\\...",
+    "python_script_dir": "C:\\03_work\\SSF2026\\build\\web\\python_process",
+    "python_temp_dir":   "C:\\03_work\\SSF2026\\build\\web\\python_process\\temp",
+    "context_path":      "C:\\03_work\\SSF2026\\build\\web\\",
     "user.dir":          "C:\\Tomcat9\\bin",
     "os.name":           "Windows 11",
     "script_dir_exists": true,
@@ -955,9 +1013,11 @@ GET /tutorial/pythonInfo.do
 ```
 
 체크 포인트:
-- `script_dir_exists: false` → 경로 오타 또는 상대경로 문제 (8.6 참조)
+- `context_path` 가 비어있거나 잘못됨 → `context_win_dir` / `context_dir` 키 누락 또는 오타
+- `script_dir_exists: false` → 컨텍스트 루트 + `python_script_dir` 결합 결과에 폴더가 없음
 - `scripts: []` → 폴더는 존재하지만 `.py` 파일이 없음 (수동 복사 누락)
 - `python_version` 에 `(failed to run ...)` → `python_command` 경로 오류
+- `python_version` 에 `(timed out after Ns)` → 파이썬 콜드스타트가 느린 환경 → `python_version_timeout_sec` 값을 늘릴 것
 
 > ⚠️ **운영 배포 시** `/tutorial/pythonInfo.do` 는 서버 내부 경로를 노출하므로 **제거하거나 `loginRequired=true` + `requiredSecurityLevel=3` (Admin 전용)** 으로 보호하세요.
 
@@ -993,8 +1053,9 @@ GET /tutorial/pythonInfo.do
 | 프로젝트 이름 변경 후 빌드 오류 | `mvn clean` 실행, IDE 재로드, `target/`, `build/`, `out/`, `dist/` 삭제 |
 | 한글이 `?` 로 깨짐 | `CharacterEncodingFilter` 매핑(`/*`) 확인, DB 연결 URL 에 `useUnicode=true&characterEncoding=UTF-8` |
 | Swagger UI 빈 화면 | `SwaggerServlet` 매핑(`/docs/*`) 확인, 브라우저에서 `/docs/api-docs?refresh=true` 로 스펙 재생성 |
-| `PythonCallUtil` 이 "script not found" 에러 | 외부 Tomcat 에서 `user.dir`이 `{CATALINA_HOME}\bin` 임. `python_script_dir` 을 **절대경로**로 설정 (§8.6) |
+| `PythonCallUtil` 이 "script not found" 에러 | `context_win_dir` / `context_dir` 가 정확히 설정되어 있는지 + `python_script_dir` 의 상대 경로가 그 하위에 실제 존재하는지 확인. `/tutorial/pythonInfo.do` 의 `context_path` / `script_dir_exists` 로 진단 (§8.6 ~ §8.7) |
 | 파이썬 호출 시 `(failed to run 'python' ...)` | `python` 이 PATH 에 없음. `python_command` 에 절대경로 (예: `C:\Python310\python.exe`) 지정 |
+| 파이썬 진단이 `(timed out after 5s)` 로 실패 | `python --version` 이 5초 안에 끝나지 않음. `configplatform.xml` 의 `python_version_timeout_sec` 값을 늘릴 것 |
 | 소스의 `configplatform.xml` 수정이 Tomcat 에 반영 안 됨 | Tomcat 은 `webapps/<app>/WEB-INF/classes/configplatform.xml` 을 읽음. 배포된 파일을 직접 수정하거나 WAR 재배포 후 webapp 재시작 |
 
 ---
@@ -1013,7 +1074,7 @@ GET /tutorial/pythonInfo.do
 - [ ] Swagger UI(`/docs/`) 에서 문서가 렌더링되는지 확인
 - [ ] `mvn clean package` 로 WAR 빌드 성공
 - [ ] (선택) Embedded Tomcat 으로 단독 실행 성공
-- [ ] (선택) 파이썬 연동 사용 시 — `python_script_dir` / `python_command` 를 **절대경로**로 설정하고 `/tutorial/pythonInfo.do` 로 `script_dir_exists: true` 확인
+- [ ] (선택) 파이썬 연동 사용 시 — `context_win_dir` / `context_dir` 가 정확히 설정되어 있고, `python_script_dir` 이 그 하위 상대 경로에 존재. `/tutorial/pythonInfo.do` 로 `script_dir_exists: true`, `context_path` 정상 확인
 
 ---
 

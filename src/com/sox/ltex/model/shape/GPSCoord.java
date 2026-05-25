@@ -2,7 +2,7 @@
  *  Copyright 2020. S.O.X. All rights reserved
  */
 
-package com.sox.ltex.util.shape;
+package com.sox.ltex.model.shape;
 
 import com.sox.ltex.util.CoordTransformUtil;
 import org.json.JSONException;
