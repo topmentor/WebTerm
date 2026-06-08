@@ -4,10 +4,10 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 if "%SERVER_PORT%"=="" set SERVER_PORT=8080
-if "%CONTEXT_PATH%"=="" set CONTEXT_PATH=/SSF2026
+if "%CONTEXT_PATH%"=="" set CONTEXT_PATH=/WebTerm
 if "%JAVA_OPTS%"=="" set JAVA_OPTS=-Xms256m -Xmx512m
 
-set WAR_FILE=target\SSF2026-embedded.war
+set WAR_FILE=target\WebTerm-embedded.war
 set EXTRACT_DIR=target\embedded-webapp
 
 if "%~1"=="" goto :build
@@ -20,7 +20,7 @@ exit /b 1
 
 :build
 echo ============================================
-echo  Building SSF2026 (Embedded Tomcat)
+echo  Building WebTerm (Embedded Tomcat)
 echo ============================================
 if exist "%EXTRACT_DIR%" (
     echo Removing previous extraction...
@@ -55,7 +55,7 @@ if not exist "%EXTRACT_DIR%\WEB-INF\web.xml" (
     if exist "%EXTRACT_DIR%" rmdir /s /q "%EXTRACT_DIR%"
     mkdir "%EXTRACT_DIR%"
     pushd "%EXTRACT_DIR%"
-    "%JAR_CMD%" xf "..\SSF2026-embedded.war"
+    "%JAR_CMD%" xf "..\WebTerm-embedded.war"
     popd
     echo Extract complete.
 )
@@ -64,7 +64,7 @@ set CP=%EXTRACT_DIR%\WEB-INF\classes
 for %%f in (%EXTRACT_DIR%\WEB-INF\lib\*.jar) do set "CP=!CP!;%%f"
 
 echo ============================================
-echo  Starting SSF2026
+echo  Starting WebTerm
 echo  Port    : %SERVER_PORT%
 echo  Context : %CONTEXT_PATH%
 echo ============================================
@@ -97,7 +97,7 @@ for %%f in (target\dependency\*.jar) do set "CP=!CP!;%%f"
 for %%f in (lib\*.jar) do set "CP=!CP!;%%f"
 
 echo ============================================
-echo  Starting SSF2026 (Dev Mode)
+echo  Starting WebTerm (Dev Mode)
 echo  Port    : %SERVER_PORT%
 echo  Context : %CONTEXT_PATH%
 echo ============================================

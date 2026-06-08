@@ -4,9 +4,9 @@ setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 set SERVER_PORT=8088
-set CONTEXT_PATH=/SSF2026
+set CONTEXT_PATH=/WebTerm
 if "%JAVA_OPTS%"=="" set JAVA_OPTS=-Xms256m -Xmx512m
-set WAR_FILE=target\SSF2026-embedded.war
+set WAR_FILE=target\WebTerm-embedded.war
 set EXTRACT_DIR=target\embedded-webapp
 
 :parse_args
@@ -69,7 +69,7 @@ if not exist "%EXTRACT_DIR%\WEB-INF\web.xml" (
     if exist "%EXTRACT_DIR%" rmdir /s /q "%EXTRACT_DIR%"
     mkdir "%EXTRACT_DIR%"
     pushd "%EXTRACT_DIR%"
-    "%JAR_CMD%" xf "..\SSF2026-embedded.war"
+    "%JAR_CMD%" xf "..\WebTerm-embedded.war"
     popd
     echo Extract complete.
 )
@@ -79,7 +79,7 @@ set CP=%EXTRACT_DIR%\WEB-INF\classes
 for %%f in (%EXTRACT_DIR%\WEB-INF\lib\*.jar) do set "CP=!CP!;%%f"
 
 echo ============================================
-echo  SSF2026 - Embedded Tomcat
+echo  WebTerm - Embedded Tomcat
 echo ============================================
 echo  Port    : %SERVER_PORT%
 echo  Context : %CONTEXT_PATH%
@@ -106,7 +106,7 @@ echo Usage: %~nx0 [OPTIONS]
 echo.
 echo Options:
 echo   -p, --port PORT        HTTP port (default: 8088)
-echo   -c, --context PATH     Context path (default: /SSF2026)
+echo   -c, --context PATH     Context path (default: /WebTerm)
 echo   -h, --help             Show help
 echo.
 echo Environment:

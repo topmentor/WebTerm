@@ -1,8 +1,8 @@
-# SSF2026
+# WebTerm
 
 > **SSF (Simple Spring-like Framework)** — Java 기반 경량 MVC 웹 애플리케이션 프레임워크의 2026 버전
 
-SSF2026은 Spring Framework와 유사한 어노테이션 기반 컨트롤러 라우팅, JDBC Template 패턴의 데이터 접근, JSP Forward 방식의 뷰 렌더링을 제공하는 경량 Java 웹 프레임워크입니다. 기존 WAR 배포뿐 아니라 **Embedded Tomcat 단독 실행**도 지원합니다.
+WebTerm은 Spring Framework와 유사한 어노테이션 기반 컨트롤러 라우팅, JDBC Template 패턴의 데이터 접근, JSP Forward 방식의 뷰 렌더링을 제공하는 경량 Java 웹 프레임워크입니다. 기존 WAR 배포뿐 아니라 **Embedded Tomcat 단독 실행**도 지원합니다.
 
 ---
 
@@ -40,7 +40,7 @@ SSF2026은 Spring Framework와 유사한 어노테이션 기반 컨트롤러 라
 ## 프로젝트 구조
 
 ```
-SSF2026/
+WebTerm/
 ├── src/com/ithows/              # 프레임워크 + 애플리케이션 코드
 │   ├── base/                    # 프레임워크 핵심 (DispatcherServlet, SecurityFilter 등)
 │   ├── controller/              # 컨트롤러 (*.do 엔드포인트)
@@ -284,8 +284,8 @@ curl -H "X-API-Key: wrong" http://localhost:8088/api/helloWorld.do
 
 | OS | 컨텍스트 루트 | 결합 결과 |
 |----|---------------|-----------|
-| Windows | `C:\03_work\SSF2026\build\web\` | `C:\03_work\SSF2026\build\web\python_process\` |
-| Linux | `/locationService/tomcat/tomcatweb/webapps/SSF2026/` | `/locationService/tomcat/tomcatweb/webapps/SSF2026/python_process/` |
+| Windows | `C:\03_work\WebTerm\build\web\` | `C:\03_work\WebTerm\build\web\python_process\` |
+| Linux | `/locationService/tomcat/tomcatweb/webapps/WebTerm/` | `/locationService/tomcat/tomcatweb/webapps/WebTerm/python_process/` |
 
 특정 환경에서만 다른 위치를 쓰려면 `python_script_dir` / `python_temp_dir` 에 절대 경로를 넣으면 그 값이 그대로 쓰입니다 (override).
 
@@ -502,7 +502,7 @@ String sql = "SELECT * FROM user WHERE userId = '" + userId + "'";
 
 ## 신규 프로젝트 생성
 
-[new-ssf-project.ps1](new-ssf-project.ps1)을 실행하면 SSF2026을 기반으로 한 새 프로젝트를 자동으로 구성합니다.  
+[new-ssf-project.ps1](new-ssf-project.ps1)을 실행하면 WebTerm을 기반으로 한 새 프로젝트를 자동으로 구성합니다.  
 대화형 모드와 JSON 설정 파일을 이용한 비대화형 모드를 모두 지원합니다.
 
 ### 실행
@@ -608,7 +608,7 @@ String sql = "SELECT * FROM user WHERE userId = '" + userId + "'";
            기본 생성 위치: {SourceRoot}\make_project\{프로젝트명}\
 
 [단계 2/5] 텍스트 치환
-           SSF2026 → 신규 프로젝트명
+           WebTerm → 신규 프로젝트명
            com.ithows → 신규 Java 패키지
            DB URL, 경로, API Key 등 설정값 일괄 치환
 
@@ -616,7 +616,7 @@ String sql = "SELECT * FROM user WHERE userId = '" + userId + "'";
            src/com/ithows/ → src/{패키지경로}/
 
 [단계 4/5] 파일명 변경
-           SSF2026.iml 등 프로젝트명이 포함된 파일명 일괄 변경
+           WebTerm.iml 등 프로젝트명이 포함된 파일명 일괄 변경
 
 [단계 5/5] Git 초기화 (선택)
            git init + 초기 커밋
@@ -659,7 +659,7 @@ tomcat.*/           ← tomcat.8088, tomcat.9090 등
 
 ```bash
 mvn clean package
-# → target/SSF2026-1.0-SNAPSHOT.war
+# → target/WebTerm-1.0-SNAPSHOT.war
 ```
 
 외부 Tomcat의 `webapps/`에 배포합니다.

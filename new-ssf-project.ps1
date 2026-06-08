@@ -10,7 +10,7 @@
       1. 소스 파일 복사 (.git, 빌드 산출물, 런타임 디렉토리 제외)
       2. 플랫폼 설정값 치환 (경로, 도메인, DB URL, Python 경로 등)
       3. Java 패키지 일괄 치환 (com.ithows → 신규 패키지)
-      4. 프로젝트명 일괄 치환 (SSF2026 → 신규 프로젝트명)
+      4. 프로젝트명 일괄 치환 (WebTerm → 신규 프로젝트명)
       5. 소스 패키지 디렉토리 구조 재편성 (src/com/ithows → src/새/패키지)
       6. 프로젝트명이 포함된 파일명 변경 (*.iml 등)
       7. Git 초기화 (선택)
@@ -72,15 +72,15 @@ $ErrorActionPreference = 'Stop'
 # ─────────────────────────────────────────────────────────────
 # 원본 식별자 상수 (치환 대상 기준값)
 # ─────────────────────────────────────────────────────────────
-$SRC_PROJECT   = 'SSF2026'
+$SRC_PROJECT   = 'WebTerm'
 $SRC_PACKAGE   = 'com.ithows'          # Java 패키지 (점 구분)
 $SRC_PKG_URL   = 'com/ithows'          # JSP·XML 경로 스타일 (슬래시 구분)
 $SRC_PKG_DIR   = 'com\ithows'          # 소스 디렉토리 경로 (Windows 역슬래시)
 
 # configplatform.xml 원본값 (XML 내 리터럴 문자열과 정확히 일치해야 함)
 $SRC_WIN_DIR   = 'C:\\03_work\\SSF_2026\\build\\web\\'
-$SRC_LINUX_DIR = '/locationService/tomcat/tomcatweb/webapps/SSF2026/'
-$SRC_SITE_DOM  = '[SSF2026 Location]'
+$SRC_LINUX_DIR = '/locationService/tomcat/tomcatweb/webapps/WebTerm/'
+$SRC_SITE_DOM  = '[WebTerm Location]'
 $SRC_PYTHON    = 'C:\\Python310\\python.exe'
 $SRC_API_KEY   = 'sox_api_key_2018'
 
@@ -690,8 +690,8 @@ Write-Host ''
 #   1) 구체적·긴 패턴 먼저 (configplatform.xml 특정값, DB URL)
 #   2) 패키지 URI 스타일 (com/ithows)
 #   3) 패키지 dot 스타일 (com.ithows)
-#   4) 프로젝트명 (SSF2026) — 마지막
-#      ∵ 앞 항목들이 먼저 바뀐 뒤 SSF2026 잔존분만 처리
+#   4) 프로젝트명 (WebTerm) — 마지막
+#      ∵ 앞 항목들이 먼저 바뀐 뒤 WebTerm 잔존분만 처리
 $pairs = @(
     # configplatform.xml 특정 값
     @{ Old = $SRC_SITE_DOM;  New = $siteDesc   }
@@ -744,7 +744,7 @@ if ($runGitInit) {
         try {
             & git init -q
             & git add .
-            & git commit -q -m "chore: init ${projName} (scaffolded from SSF2026 framework)"
+            & git commit -q -m "chore: init ${projName} (scaffolded from WebTerm framework)"
             Write-Ok 'git init + 초기 커밋 완료'
         } catch {
             Write-Warn ("Git 오류: {0}" -f $_.Exception.Message)

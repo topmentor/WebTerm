@@ -55,7 +55,7 @@ public class JdbcDao {
 //                fileName = JdbcDao.class.getResource("/").toString().replaceAll("file:/", "") + "connpool_etri.xml";  // -- @@ 윈도우즈 적용
                 fileName = JdbcDao.class.getResource("/").toString().replaceAll("file:/", "") + "connpool.xml";  // -- @@ 윈도우즈 적용
             }else{
-//                fileName = "/usr/share/tomcat/webapps/SSF2026/WEB-INF/classes/connpool.xml";  // @@ 리눅스 용 
+//                fileName = "/usr/share/tomcat/webapps/WebTerm/WEB-INF/classes/connpool.xml";  // @@ 리눅스 용 
                 fileName = "/" +  JdbcDao.class.getResource("/").toString().replaceAll("file:/", "") + "connpool.xml" ; //  @@ 리눅스 용 
             }
 

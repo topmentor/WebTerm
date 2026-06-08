@@ -29,12 +29,12 @@ public class DevUtils {
     
     /**
      * 라인수 저장 
-     *  find /V /C C:\00_Project_Biz\ETRI2020\SSF2026\src\com\ithows\*.java ""
+     *  find /V /C C:\00_Project_Biz\ETRI2020\WebTerm\src\com\ithows\*.java ""
      * find . -name '*.java' | xargs wc -l
      * @throws Exception 
      */
     public static void checkLineCount() throws Exception{
-        String projectPath = "C:\\01_project\\SSF2026\\";
+        String projectPath = "C:\\01_project\\WebTerm\\";
         String[] jspPath = new String[5];
         jspPath[0] = "web\\WEB-INF\\jsp\\";
         jspPath[1] = "web\\WEB-INF\\jsp\\api";

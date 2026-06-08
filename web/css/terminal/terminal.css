@@ -1,0 +1,205 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    background: #101418;
+    color: #eef2f5;
+    font-family: Arial, "Malgun Gothic", sans-serif;
+}
+
+.terminal-app {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.connection-bar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: end;
+    padding: 14px 18px;
+    background: #182027;
+    border-bottom: 1px solid #2f3a43;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    white-space: nowrap;
+}
+
+.brand-mark {
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    height: 32px;
+    border: 1px solid #4ba3c7;
+    border-radius: 6px;
+    color: #8ee0ff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.brand-title {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.connection-form {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.25fr) minmax(260px, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.field-row {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.address-row {
+    grid-template-columns: minmax(170px, 1fr) 88px;
+}
+
+.account-row {
+    grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr);
+}
+
+.connection-form label {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.connection-form span {
+    color: #aab7c2;
+    font-size: 12px;
+}
+
+.connection-form input {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #3b4852;
+    border-radius: 6px;
+    padding: 0 10px;
+    background: #0e1317;
+    color: #f3f7f9;
+    font-size: 14px;
+    outline: none;
+}
+
+.connection-form input:focus {
+    border-color: #4ba3c7;
+    box-shadow: 0 0 0 2px rgba(75, 163, 199, 0.22);
+}
+
+.actions {
+    display: grid;
+    grid-template-columns: 74px 74px;
+    gap: 8px;
+}
+
+.actions button {
+    height: 38px;
+    border: 0;
+    border-radius: 6px;
+    color: #071013;
+    background: #8ee0ff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.actions button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+#disconnectButton {
+    background: #ffb86b;
+}
+
+.terminal-shell {
+    display: grid;
+    grid-template-rows: 34px minmax(0, 1fr);
+    min-height: 0;
+    background: #050708;
+}
+
+.terminal-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px;
+    border-bottom: 1px solid #1e252b;
+    background: #0c1013;
+    color: #b8c4cc;
+    font-size: 13px;
+}
+
+.status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #79858d;
+}
+
+.status-dot.connected {
+    background: #72d48b;
+}
+
+.status-dot.error {
+    background: #ff6f61;
+}
+
+#terminal {
+    min-height: 0;
+    padding: 10px;
+}
+
+.xterm {
+    height: 100%;
+}
+
+@media (max-width: 920px) {
+    .connection-bar {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+    }
+
+    .brand {
+        min-height: 36px;
+    }
+
+    .connection-form {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .connection-bar {
+        padding: 12px;
+    }
+
+    .address-row {
+        grid-template-columns: minmax(0, 1fr) 82px;
+    }
+
+    .account-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}

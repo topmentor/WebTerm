@@ -26,9 +26,12 @@ public class HttpSessionConfigurator extends Configurator {
   public void modifyHandshake(ServerEndpointConfig config, HandshakeRequest request, HandshakeResponse response) {	
     // HttpRequest로부터 Session을 받는다.	
     HttpSession session = (HttpSession) request.getHttpSession();	
+    if (session == null) {
+      return;
+    }
     // HttpSession으로 부터 Context도 받는다.	
     ServletContext context = session.getServletContext();	
     config.getUserProperties().put(HttpSessionConfigurator.Session, session);	
     config.getUserProperties().put(HttpSessionConfigurator.Context, context);	
   }	
-}
+} 

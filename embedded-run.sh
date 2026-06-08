@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================
-# SSF2026 - Embedded Tomcat run script (Linux/Mac)
+# WebTerm - Embedded Tomcat run script (Linux/Mac)
 # =============================================================
 
 set -e
@@ -9,9 +9,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 SERVER_PORT=8088
-CONTEXT_PATH="/SSF2026"
+CONTEXT_PATH="/WebTerm"
 JAVA_OPTS="${JAVA_OPTS:-"-Xms256m -Xmx512m"}"
-WAR_FILE="target/SSF2026-embedded.war"
+WAR_FILE="target/WebTerm-embedded.war"
 EXTRACT_DIR="target/embedded-webapp"
 
 while [[ $# -gt 0 ]]; do
@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  -p, --port PORT        HTTP port (default: 8088)"
-            echo "  -c, --context PATH     Context path (default: /SSF2026)"
+            echo "  -c, --context PATH     Context path (default: /WebTerm)"
             echo "  -h, --help             Show help"
             echo ""
             echo "Environment:"
@@ -65,7 +65,7 @@ if [ ! -f "$EXTRACT_DIR/WEB-INF/web.xml" ]; then
     rm -rf "$EXTRACT_DIR"
     mkdir -p "$EXTRACT_DIR"
     cd "$EXTRACT_DIR"
-    "$JAR_CMD" xf "../SSF2026-embedded.war"
+    "$JAR_CMD" xf "../WebTerm-embedded.war"
     cd "$SCRIPT_DIR"
     echo "Extract complete."
 fi
@@ -77,7 +77,7 @@ for jar in "$EXTRACT_DIR"/WEB-INF/lib/*.jar; do
 done
 
 echo "============================================"
-echo " SSF2026 - Embedded Tomcat"
+echo " WebTerm - Embedded Tomcat"
 echo "============================================"
 echo " Port    : $SERVER_PORT"
 echo " Context : $CONTEXT_PATH"

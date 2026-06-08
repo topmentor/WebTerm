@@ -174,7 +174,7 @@ public class PythonCallUtil {
      * <pre>
      * {
      *   "python_command":    "python",
-     *   "python_script_dir": "C:\\03_work\\SSF2026\\python_process",
+     *   "python_script_dir": "C:\\03_work\\WebTerm\\python_process",
      *   "python_temp_dir":   "C:\\Users\\...\\AppData\\Local\\Temp\\",
      *   "user.dir":          "...",     // JVM 작업 디렉토리
      *   "os.name":           "Windows 11",

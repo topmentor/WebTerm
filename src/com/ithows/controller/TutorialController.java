@@ -574,7 +574,7 @@ public class TutorialController {
     //
     //     호출 예:
     //       curl -F "file=@hello.txt" \
-    //            http://localhost:8088/SSF2026/tutorial/uploadFile.do
+    //            http://localhost:8088/WebTerm/tutorial/uploadFile.do
     // =====================================================================
     @ControllerMethodInfo(id = "/tutorial/uploadFile.do")
     @ApiInfo(
@@ -654,7 +654,7 @@ public class TutorialController {
     //
     //     호출 예:
     //       curl -OJ \
-    //         "http://localhost:8088/SSF2026/tutorial/downloadFile.do?fileName=20260421103000_hello.txt"
+    //         "http://localhost:8088/WebTerm/tutorial/downloadFile.do?fileName=20260421103000_hello.txt"
     // =====================================================================
     @ControllerMethodInfo(id = "/tutorial/downloadFile.do")
     @ApiInfo(

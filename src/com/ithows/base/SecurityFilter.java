@@ -187,7 +187,7 @@ public class SecurityFilter implements Filter {
                 "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; " +
                 "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; " +
                 "img-src 'self' data: https://*.tile.openstreetmap.org https://*.google.com https://*.googleapis.com https://*.daumcdn.net https://*.kakao.com https://*.vworld.kr; " +
-                "connect-src 'self' https://*.google.com https://*.googleapis.com https://*.daumcdn.net https://*.vworld.kr https://nominatim.openstreetmap.org");
+                "connect-src 'self' ws: wss: https://*.google.com https://*.googleapis.com https://*.daumcdn.net https://*.vworld.kr https://nominatim.openstreetmap.org");
 
         // Referrer 정책
         response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");

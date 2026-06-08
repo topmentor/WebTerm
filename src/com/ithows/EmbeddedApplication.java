@@ -10,19 +10,19 @@ import org.apache.catalina.webresources.DirResourceSet;
 import org.apache.catalina.webresources.StandardRoot;
 
 /**
- * Embedded Tomcat으로 SSF2026를 실행하는 메인 클래스.
+ * Embedded Tomcat으로 WebTerm를 실행하는 메인 클래스.
  *
  * <p>시스템 프로퍼티:</p>
  * <ul>
  *   <li>{@code -Dserver.port=8080} : HTTP 포트 (기본값: 8080)</li>
- *   <li>{@code -Dserver.contextPath=/SSF2026} : 컨텍스트 경로 (기본값: /SSF2026)</li>
+ *   <li>{@code -Dserver.contextPath=/WebTerm} : 컨텍스트 경로 (기본값: /WebTerm)</li>
  *   <li>{@code -Dwebapp.base=web} : 웹앱 기본 디렉토리 (개발 모드용)</li>
  * </ul>
  */
 public class EmbeddedApplication {
 
     private static final int DEFAULT_PORT = 8080;
-    private static final String DEFAULT_CONTEXT_PATH = "/SSF2026";
+    private static final String DEFAULT_CONTEXT_PATH = "/WebTerm";
 
     public static void main(String[] args) throws Exception {
         int port = Integer.parseInt(System.getProperty("server.port", String.valueOf(DEFAULT_PORT)));
@@ -51,7 +51,7 @@ public class EmbeddedApplication {
         }
 
         System.out.println("========================================");
-        System.out.println(" SSF2026 Embedded Tomcat");
+        System.out.println(" WebTerm Embedded Tomcat");
         System.out.println(" Port    : " + port);
         System.out.println(" Context : " + contextPath);
         System.out.println(" Webapp  : " + webappDir);

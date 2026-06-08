@@ -7,10 +7,10 @@
       mvn -f pom-embedded.xml clean package
 
     실행:
-      java -jar target/SSF2026-embedded.jar
+      java -jar target/WebTerm-embedded.jar
 
     옵션:
-      java -Dserver.port=9090 -Dserver.contextPath=/SSF2026 -jar target/SSF2026-embedded.jar
+      java -Dserver.port=9090 -Dserver.contextPath=/WebTerm -jar target/WebTerm-embedded.jar
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -18,11 +18,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ithows</groupId>
-    <artifactId>SSF2026-embedded</artifactId>
+    <artifactId>WebTerm-embedded</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>war</packaging>
 
-    <name>SSF2026 (Embedded Tomcat)</name>
+    <name>WebTerm (Embedded Tomcat)</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -296,6 +296,20 @@
             <version>5.3.38</version>
         </dependency>
 
+        <!-- SSH client for the browser terminal bridge -->
+        <dependency>
+            <groupId>com.jcraft</groupId>
+            <artifactId>jsch</artifactId>
+            <version>0.1.55</version>
+        </dependency>
+
+        <!-- SQLite storage for workspace SSH settings and quick commands -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.46.1.0</version>
+        </dependency>
+
         <!-- Local JARs (system scope) -->
         <dependency>
             <groupId>com.ithows</groupId>
@@ -357,7 +371,7 @@
     </dependencies>
 
     <build>
-        <finalName>SSF2026-embedded</finalName>
+        <finalName>WebTerm-embedded</finalName>
         <sourceDirectory>src</sourceDirectory>
         <resources>
             <resource>

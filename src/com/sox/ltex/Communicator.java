@@ -17,8 +17,8 @@ import org.json.JSONObject;
 public class Communicator {
     
     
-    private static String insertLTEMatchUrl =  "/SSF2026/api/insertLTEMatchAllSlave.do";
-    private static String insertCellidindexUrl =  "/SSF2026/api/insertCellidindexAllSlave.do";
+    private static String insertLTEMatchUrl =  "/WebTerm/api/insertLTEMatchAllSlave.do";
+    private static String insertCellidindexUrl =  "/WebTerm/api/insertCellidindexAllSlave.do";
     
     
       

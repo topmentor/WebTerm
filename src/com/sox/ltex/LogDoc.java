@@ -20,9 +20,9 @@ import java.util.logging.Logger;
  */
 public class LogDoc {
      public static PrintStream logWriter = null;
-//     public static String logPath ="D:\\00_project2022\\SSF2026\\build\\web\\resultLog\\"; // @@ 컨텍스트 경로 - 로컬 서버
-//    public static String logPath = "C:\\Tomcat9\\webapps\\SSF2026\\resultLog\\";;   // @@ 컨텍스트 경로 - etri 서버
-    public static String logPath ="C:\\Tomcat9_2\\webapps\\SSF2026\\resultLog\\";   // @@ 컨텍스트 경로 - 서울 서버
+//     public static String logPath ="D:\\00_project2022\\WebTerm\\build\\web\\resultLog\\"; // @@ 컨텍스트 경로 - 로컬 서버
+//    public static String logPath = "C:\\Tomcat9\\webapps\\WebTerm\\resultLog\\";;   // @@ 컨텍스트 경로 - etri 서버
+    public static String logPath ="C:\\Tomcat9_2\\webapps\\WebTerm\\resultLog\\";   // @@ 컨텍스트 경로 - 서울 서버
     public static String fileName = "";
      
     static {

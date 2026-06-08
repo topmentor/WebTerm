@@ -3,12 +3,12 @@
     SSF 프로젝트 이름 일괄 변경 스크립트.
 
 .DESCRIPTION
-    소스/설정 파일 내에 하드코딩된 프로젝트 이름(기본값: "SSF2026")을
+    소스/설정 파일 내에 하드코딩된 프로젝트 이름(기본값: "WebTerm")을
     지정한 새 이름으로 일괄 치환하고, 파일명에 포함된 이름도 함께 변경한다.
 
     처리 대상:
       - 텍스트 파일 내용 치환 (.java, .jsp, .xml, .properties, .sh, .bat, .md, .iml 등)
-      - 파일 이름 변경 (예: SSF2026.iml -> MyApp.iml)
+      - 파일 이름 변경 (예: WebTerm.iml -> MyApp.iml)
 
     제외 대상:
       - 빌드 산출물   : target/, build/, out/, dist/
@@ -23,7 +23,7 @@
     새 프로젝트 이름 (필수). 예: "MyApp"
 
 .PARAMETER OldName
-    바꿀 기존 이름. 기본값 "SSF2026".
+    바꿀 기존 이름. 기본값 "WebTerm".
 
 .PARAMETER Root
     프로젝트 루트 경로. 기본값: 이 스크립트가 위치한 폴더.
@@ -40,7 +40,7 @@
     실제 적용.
 
 .EXAMPLE
-    .\rename-project.ps1 -NewName MyApp -OldName SSF2026
+    .\rename-project.ps1 -NewName MyApp -OldName WebTerm
     OldName 을 명시적으로 지정.
 #>
 
@@ -50,7 +50,7 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$NewName,
 
-    [string]$OldName = "SSF2026",
+    [string]$OldName = "WebTerm",
 
     [string]$Root = $PSScriptRoot,
 

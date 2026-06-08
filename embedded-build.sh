@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================
-# SSF2026 - Embedded Tomcat 빌드 스크립트 (Linux/Mac)
+# WebTerm - Embedded Tomcat 빌드 스크립트 (Linux/Mac)
 # =============================================================
 #
 # 사용법:
@@ -21,14 +21,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
 SERVER_PORT="${SERVER_PORT:-8080}"
-CONTEXT_PATH="${CONTEXT_PATH:-/SSF2026}"
+CONTEXT_PATH="${CONTEXT_PATH:-/WebTerm}"
 JAVA_OPTS="${JAVA_OPTS:-}"
 
-WAR_FILE="target/SSF2026-embedded.war"
+WAR_FILE="target/WebTerm-embedded.war"
 
 build() {
     echo "============================================"
-    echo " Building SSF2026 (Embedded Tomcat)"
+    echo " Building WebTerm (Embedded Tomcat)"
     echo "============================================"
     mvn -f pom-embedded.xml clean package -DskipTests
     echo ""
@@ -41,7 +41,7 @@ run_jar() {
         build
     fi
     echo "============================================"
-    echo " Starting SSF2026"
+    echo " Starting WebTerm"
     echo " Port: $SERVER_PORT"
     echo " Context: $CONTEXT_PATH"
     echo "============================================"
@@ -58,7 +58,7 @@ run_dev() {
     mvn -f pom-embedded.xml compile -DskipTests
 
     echo "============================================"
-    echo " Starting SSF2026 (Dev Mode)"
+    echo " Starting WebTerm (Dev Mode)"
     echo " Port: $SERVER_PORT"
     echo " Context: $CONTEXT_PATH"
     echo " Webapp: web/"

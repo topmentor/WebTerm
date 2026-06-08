@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SSF2026 API Documentation</title>
+  <title>WebTerm API Documentation</title>
   <link rel="shortcut icon" href="./favicon.ico" type="image/x-icon">
   <link rel="icon" href="./favicon.ico" type="image/x-icon">
     
@@ -29,7 +29,7 @@
 <body>
   <div class="custom-header">
     <div>
-      <h1>SSF2026 API Documentation</h1>
+      <h1>WebTerm API Documentation</h1>
       <div class="info">서비스 REST API 문서</div>
     </div>
     <button class="refresh-btn" onclick="location.reload()">Refresh</button>

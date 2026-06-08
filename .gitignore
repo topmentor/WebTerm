@@ -9,6 +9,7 @@ dist/
 build/
 target/
 tomcat.9090/
+tomcat.*/
 
 
 # Compiled Java class files
@@ -16,6 +17,10 @@ tomcat.9090/
 
 # Log files
 *.log
+
+# Runtime SQLite data
+data.db
+data.db-*
 
 # Maven
 target/

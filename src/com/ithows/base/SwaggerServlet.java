@@ -106,8 +106,8 @@ public class SwaggerServlet extends HttpServlet {
 
             // Info
             JSONObject info = new JSONObject();
-            info.put("title", "SSF2026 API");
-            info.put("description", "SSF2026 REST API 문서");
+            info.put("title", "WebTerm API");
+            info.put("description", "WebTerm REST API 문서");
             info.put("version", "1.0.0");
             spec.put("info", info);
 

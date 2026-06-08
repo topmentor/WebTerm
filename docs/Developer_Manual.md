@@ -72,13 +72,13 @@ mvn -v              # Maven 설치 확인
 
 ```powershell
 # PowerShell 예시
-Copy-Item -Recurse C:\03_work\SSF2026 C:\03_work\MyApp
+Copy-Item -Recurse C:\03_work\WebTerm C:\03_work\MyApp
 cd C:\03_work\MyApp
 ```
 
 ### 3.2 프로젝트 이름 일괄 변경
 
-루트에 포함된 [../rename-project.ps1](../rename-project.ps1) 스크립트로 모든 소스/설정에 하드코딩된 `SSF2026` 식별자를 새 이름으로 일괄 변경합니다.
+루트에 포함된 [../rename-project.ps1](../rename-project.ps1) 스크립트로 모든 소스/설정에 하드코딩된 `WebTerm` 식별자를 새 이름으로 일괄 변경합니다.
 
 ```powershell
 # 1. 변경 미리보기
@@ -89,7 +89,7 @@ cd C:\03_work\MyApp
 ```
 
 처리 후 수동으로 할 일:
-- 프로젝트 루트 **디렉토리 이름** 변경 (예: `SSF2026` → `MyApp`)
+- 프로젝트 루트 **디렉토리 이름** 변경 (예: `WebTerm` → `MyApp`)
 - IDE 캐시 재로드 (`.idea/`, `nbproject/`)
 - 기존 빌드 산출물 정리 — `mvn clean` 또는 `target/`, `build/`, `out/`, `dist/` 수동 삭제
 - `configplatform.xml` 의 절대경로(`C:\01_project\...`, `/usr/share/tomcat/...`) 는 배포 환경에 맞게 별도 조정
@@ -271,7 +271,7 @@ CREATE TABLE tutorial_item (
 
 - **Step 1 ~ 8 학습 중에 막히면** — 위 표에서 같은 패턴을 가진 엔드포인트를 찾아 [TutorialController.java](../src/com/ithows/controller/TutorialController.java) 의 해당 메서드를 참조하세요. 모든 메서드에 의도/주의사항 주석이 달려 있습니다.
 - **자체 컨트롤러를 만들 때** — TutorialController 의 가까운 메서드를 복사해 시작하면 어노테이션·반환값·에러 처리 패턴이 자연스럽게 따라옵니다.
-- **Swagger 문서 확인** — 이 모든 엔드포인트는 `@ApiInfo` 가 붙어 있어, 서버 실행 후 [/docs/](http://localhost:8088/SSF2026/docs/) 에서 인터랙티브하게 호출해볼 수 있습니다 (Step 6 참조).
+- **Swagger 문서 확인** — 이 모든 엔드포인트는 `@ApiInfo` 가 붙어 있어, 서버 실행 후 [/docs/](http://localhost:8088/WebTerm/docs/) 에서 인터랙티브하게 호출해볼 수 있습니다 (Step 6 참조).
 
 ---
 
@@ -972,8 +972,8 @@ public String analyzeText(HttpSession session, HttpServletRequest request,
 
 ```xml
 <!-- 컨텍스트 루트 (이미 존재하는 키) -->
-<entry key="context_win_dir">C:\03_work\SSF2026\build\web\</entry>
-<entry key="context_dir">/locationService/tomcat/tomcatweb/webapps/SSF2026/</entry>
+<entry key="context_win_dir">C:\03_work\WebTerm\build\web\</entry>
+<entry key="context_dir">/locationService/tomcat/tomcatweb/webapps/WebTerm/</entry>
 
 <!-- 파이썬은 상대 경로로 한 번만 -->
 <entry key="python_script_dir">python_process/</entry>
@@ -982,8 +982,8 @@ public String analyzeText(HttpSession session, HttpServletRequest request,
 
 | OS | 결합 결과 (예: `python_script_dir`) |
 |----|-------------------------------------|
-| Windows | `C:\03_work\SSF2026\build\web\python_process\` |
-| Linux   | `/locationService/tomcat/tomcatweb/webapps/SSF2026/python_process/` |
+| Windows | `C:\03_work\WebTerm\build\web\python_process\` |
+| Linux   | `/locationService/tomcat/tomcatweb/webapps/WebTerm/python_process/` |
 
 **절대 경로로 override 하고 싶을 때**는 그대로 절대 경로를 넣어주면 컨텍스트 루트와 결합하지 않고 그 값이 그대로 사용됩니다.
 
@@ -1001,9 +1001,9 @@ GET /tutorial/pythonInfo.do
 ```json
 {
     "python_command":    "C:\\Python310\\python.exe",
-    "python_script_dir": "C:\\03_work\\SSF2026\\build\\web\\python_process",
-    "python_temp_dir":   "C:\\03_work\\SSF2026\\build\\web\\python_process\\temp",
-    "context_path":      "C:\\03_work\\SSF2026\\build\\web\\",
+    "python_script_dir": "C:\\03_work\\WebTerm\\build\\web\\python_process",
+    "python_temp_dir":   "C:\\03_work\\WebTerm\\build\\web\\python_process\\temp",
+    "context_path":      "C:\\03_work\\WebTerm\\build\\web\\",
     "user.dir":          "C:\\Tomcat9\\bin",
     "os.name":           "Windows 11",
     "script_dir_exists": true,
