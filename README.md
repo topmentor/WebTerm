@@ -27,7 +27,7 @@ WebTerm은 브라우저에서 SSH 터미널과 원격 AI CLI 작업 공간을 �
 
 ### 요구 사항
 
-- JDK 8 이상
+- JDK 17 이상
 - Maven 3.x
 - 접속 대상 서버의 SSH 계정
 - 원격에서 AI CLI를 실행하려면 해당 서버에 `codex` 또는 `claude` 명령 설치
@@ -133,7 +133,7 @@ data.db
 
 | 구분 | 내용 |
 |------|------|
-| 언어 | Java 8 |
+| 언어 | Java 17 |
 | 웹 런타임 | Servlet/JSP, Embedded Tomcat 9 |
 | 터미널 UI | xterm.js, xterm-addon-fit |
 | WebSocket | Java WebSocket API |
