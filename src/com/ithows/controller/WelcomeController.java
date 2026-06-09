@@ -12,6 +12,7 @@ import com.ithows.base.ApiInfo;
 import com.ithows.base.ControllerClassInfo;
 import com.ithows.base.ControllerMethodInfo;
 import com.sox.ltex.CommonDoc;
+import com.ithows.service.WebTermAuthStore;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -27,6 +28,7 @@ import javax.servlet.http.HttpSession;
  */
 @ControllerClassInfo(controllerPage="/_main.jsp")
 public class WelcomeController {
+    private final WebTermAuthStore webTermAuthStore = new WebTermAuthStore();
 
     static {
         BaseDebug.info("***WelcomeController.class Loading!!");
@@ -85,32 +87,34 @@ public class WelcomeController {
         tag = "인증",
         method = "POST",
         parameters = {
+            @ApiInfo.Param(name = "userId", type = "string", description = "사용자 ID", required = true),
             @ApiInfo.Param(name = "passwd", type = "string", description = "비밀번호", required = true)
         }
     )
     public String login(HttpSession session, HttpServletRequest request, HttpServletResponse response, Object command) throws Exception {
-        SessionInfo sInfo = HttpUtil.getSessionInfo(session);
-        
-//        String userIdStr = HttpUtil.getParameterString(request, "userId", "");
-        String userIdStr = "etriadmin";
+        String userIdStr = HttpUtil.getParameterString(request, "userId", "soxuser").trim();
         String passwdStr = HttpUtil.getParameterString(request, "passwd", "");
 
-        if (passwdStr == null || passwdStr.equals("")) {
-           return "/login.jsp";
+        if (userIdStr.equals("") || passwdStr == null || passwdStr.equals("")) {
+            request.setAttribute("result", "NO");
+            request.setAttribute("msg", "ID and password are required");
+            return "RESULT_PAGE_JSON";
         }
         
-        ResultMap currentMan = SessionInfo.login(session, request, response, userIdStr, passwdStr);
+        ResultMap currentMan = webTermAuthStore.authenticate(userIdStr, passwdStr);
         
         if(currentMan == null){
             request.setAttribute("result", "NO");
             request.setAttribute("msg", "Login fail");
             return "RESULT_PAGE_JSON";
         }
-                
-//        Map map = SOXSessionListener.getSessionMap();
-//        
-//        System.out.println("map >>>  " + map );       
-        
+
+        currentMan.put("userHost", request.getRemoteHost());
+        currentMan.put("userIp", HttpUtil.getClientIp(request));
+
+        SessionInfo clientsInfo = new SessionInfo();
+        clientsInfo.setLogin(currentMan);
+        session.setAttribute("sessionInfo", clientsInfo);
       
         request.setAttribute("result", "OK");
         request.setAttribute("msg", userIdStr);

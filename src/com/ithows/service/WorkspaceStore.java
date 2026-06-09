@@ -3,6 +3,7 @@ package com.ithows.service;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,24 +17,41 @@ import java.util.Set;
 public class WorkspaceStore {
 
     private static final Object LOCK = new Object();
-    private static final Set<String> ALLOWED_CDN_FONTS = Set.of(
-            "\"JetBrains Mono\"",
-            "\"Fira Code\"",
-            "\"Source Code Pro\"",
-            "\"Roboto Mono\"",
-            "\"IBM Plex Mono\"",
-            "\"Noto Sans Mono\"",
-            "\"Inconsolata\"",
-            "\"Ubuntu Mono\"",
-            "\"Space Mono\"",
-            "\"Azeret Mono\""
+    private static final String DEFAULT_FONT_FAMILY = "\"JetBrains Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace";
+    private static final Set<String> ALLOWED_WEB_MONO_FONTS = Set.of(
+            DEFAULT_FONT_FAMILY,
+            "\"Fira Code\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Source Code Pro\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Roboto Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"IBM Plex Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Noto Sans Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Inconsolata\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Ubuntu Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Space Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace",
+            "\"Azeret Mono\", \"Cascadia Mono\", Consolas, \"Courier New\", monospace"
     );
 
     private static boolean initialized = false;
 
     private static Connection getConnection() throws Exception {
-        Path dbPath = Path.of(System.getProperty("user.dir"), "data.db").toAbsolutePath();
+        Class.forName("org.sqlite.JDBC");
+        Path dbPath = dataDirectory().resolve("data.db").toAbsolutePath();
         return DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+    }
+
+    private static Path dataDirectory() throws Exception {
+        String explicit = System.getProperty("webterm.dataDir", "").trim();
+        Path dir;
+        if (explicit.length() > 0) {
+            dir = Path.of(explicit);
+        } else {
+            String catalinaBase = System.getProperty("catalina.base", "").trim();
+            dir = catalinaBase.length() > 0
+                    ? Path.of(catalinaBase, "webterm-data")
+                    : Path.of(System.getProperty("user.dir"));
+        }
+        Files.createDirectories(dir);
+        return dir;
     }
 
     private static void ensureSchema(Connection conn) throws Exception {
@@ -48,10 +66,14 @@ public class WorkspaceStore {
                         + "port INTEGER NOT NULL DEFAULT 22,"
                         + "username TEXT NOT NULL,"
                         + "password TEXT NOT NULL DEFAULT '',"
+                        + "private_key TEXT NOT NULL DEFAULT '',"
+                        + "private_key_passphrase TEXT NOT NULL DEFAULT '',"
                         + "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                         + "updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                         + "UNIQUE(host, port, username)"
                         + ")");
+                addColumnIfMissing(st, "ssh_servers", "private_key", "TEXT NOT NULL DEFAULT ''");
+                addColumnIfMissing(st, "ssh_servers", "private_key_passphrase", "TEXT NOT NULL DEFAULT ''");
                 st.executeUpdate("CREATE TABLE IF NOT EXISTS quick_commands ("
                         + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                         + "command TEXT NOT NULL UNIQUE,"
@@ -69,12 +91,23 @@ public class WorkspaceStore {
         }
     }
 
+    private static void addColumnIfMissing(Statement st, String table, String column, String definition) throws Exception {
+        try (ResultSet rs = st.executeQuery("PRAGMA table_info(" + table + ")")) {
+            while (rs.next()) {
+                if (column.equalsIgnoreCase(rs.getString("name"))) {
+                    return;
+                }
+            }
+        }
+        st.executeUpdate("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+    }
+
     public JSONArray listServers() throws Exception {
         try (Connection conn = getConnection()) {
             ensureSchema(conn);
             JSONArray arr = new JSONArray();
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT id, host, port, username, password, created_at, updated_at "
+                    "SELECT id, host, port, username, password, private_key, private_key_passphrase, created_at, updated_at "
                             + "FROM ssh_servers ORDER BY username, host, port");
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -84,6 +117,8 @@ public class WorkspaceStore {
                     o.put("port", rs.getInt("port"));
                     o.put("username", rs.getString("username"));
                     o.put("password", rs.getString("password"));
+                    o.put("privateKey", rs.getString("private_key"));
+                    o.put("privateKeyPassphrase", rs.getString("private_key_passphrase"));
                     o.put("createdAt", rs.getString("created_at"));
                     o.put("updatedAt", rs.getString("updated_at"));
                     arr.put(o);
@@ -93,17 +128,46 @@ public class WorkspaceStore {
         }
     }
 
-    public JSONObject saveServer(String host, int port, String username, String password) throws Exception {
+    public JSONObject saveServer(String host, int port, String username, String password,
+                                 String privateKey, String privateKeyPassphrase) throws Exception {
         try (Connection conn = getConnection()) {
             ensureSchema(conn);
             try (PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO ssh_servers(host, port, username, password, updated_at) VALUES(?,?,?,?,CURRENT_TIMESTAMP) "
+                    "INSERT INTO ssh_servers(host, port, username, password, private_key, private_key_passphrase, updated_at) "
+                            + "VALUES(?,?,?,?,?,?,CURRENT_TIMESTAMP) "
                             + "ON CONFLICT(host, port, username) DO UPDATE SET "
-                            + "password=excluded.password, updated_at=CURRENT_TIMESTAMP")) {
+                            + "password=excluded.password, "
+                            + "private_key=excluded.private_key, "
+                            + "private_key_passphrase=excluded.private_key_passphrase, "
+                            + "updated_at=CURRENT_TIMESTAMP")) {
                 ps.setString(1, host);
                 ps.setInt(2, port);
                 ps.setString(3, username);
                 ps.setString(4, password == null ? "" : password);
+                ps.setString(5, privateKey == null ? "" : privateKey);
+                ps.setString(6, privateKeyPassphrase == null ? "" : privateKeyPassphrase);
+                ps.executeUpdate();
+            }
+            return findServer(conn, host, port, username);
+        }
+    }
+
+    public JSONObject saveServerPrivateKey(String host, int port, String username,
+                                           String privateKey, String privateKeyPassphrase) throws Exception {
+        try (Connection conn = getConnection()) {
+            ensureSchema(conn);
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO ssh_servers(host, port, username, password, private_key, private_key_passphrase, updated_at) "
+                            + "VALUES(?,?,?,'',?,?,CURRENT_TIMESTAMP) "
+                            + "ON CONFLICT(host, port, username) DO UPDATE SET "
+                            + "private_key=excluded.private_key, "
+                            + "private_key_passphrase=excluded.private_key_passphrase, "
+                            + "updated_at=CURRENT_TIMESTAMP")) {
+                ps.setString(1, host);
+                ps.setInt(2, port);
+                ps.setString(3, username);
+                ps.setString(4, privateKey == null ? "" : privateKey);
+                ps.setString(5, privateKeyPassphrase == null ? "" : privateKeyPassphrase);
                 ps.executeUpdate();
             }
             return findServer(conn, host, port, username);
@@ -205,7 +269,7 @@ public class WorkspaceStore {
 
     private JSONObject findServer(Connection conn, String host, int port, String username) throws Exception {
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT id, host, port, username, password, created_at, updated_at "
+                "SELECT id, host, port, username, password, private_key, private_key_passphrase, created_at, updated_at "
                         + "FROM ssh_servers WHERE host=? AND port=? AND username=?")) {
             ps.setString(1, host);
             ps.setInt(2, port);
@@ -218,6 +282,8 @@ public class WorkspaceStore {
                     o.put("port", rs.getInt("port"));
                     o.put("username", rs.getString("username"));
                     o.put("password", rs.getString("password"));
+                    o.put("privateKey", rs.getString("private_key"));
+                    o.put("privateKeyPassphrase", rs.getString("private_key_passphrase"));
                     o.put("createdAt", rs.getString("created_at"));
                     o.put("updatedAt", rs.getString("updated_at"));
                 }
@@ -256,7 +322,7 @@ public class WorkspaceStore {
 
     private static JSONObject defaultSettings() {
         JSONObject settings = new JSONObject();
-        settings.put("terminalFontFamily", "\"JetBrains Mono\"");
+        settings.put("terminalFontFamily", DEFAULT_FONT_FAMILY);
         settings.put("terminalFontSize", 14);
         return settings;
     }
@@ -273,13 +339,13 @@ public class WorkspaceStore {
 
     private static String normalizeFontFamily(String value) {
         if (value == null || value.isBlank()) {
-            return "\"JetBrains Mono\"";
+            return DEFAULT_FONT_FAMILY;
         }
         String fontFamily = unescapeHtml(value.trim());
-        if (ALLOWED_CDN_FONTS.contains(fontFamily)) {
+        if (ALLOWED_WEB_MONO_FONTS.contains(fontFamily)) {
             return fontFamily;
         }
-        return "\"JetBrains Mono\"";
+        return DEFAULT_FONT_FAMILY;
     }
 
     private static String unescapeHtml(String value) {

@@ -11,15 +11,19 @@ WebTerm은 브라우저에서 SSH 터미널과 원격 AI CLI 작업 공간을 �
 - 브라우저 SSH 터미널: `/terminal.do`
 - SSH/Codex 워크스페이스: `/workspace.do`
 - 여러 SSH 세션 탭 관리
+- 내부 SQLite DB 기반 WebTerm 로그인
+- 로그아웃 및 재로그인 흐름
 - 저장한 SSH 서버 목록 관리
 - 자주 쓰는 명령 저장 및 활성 SSH 탭으로 전송
-- 원격 SSH 세션 안에서 `codex` 또는 `claude` CLI 실행
+- 원격 SSH 세션에서 `codex` 또는 `claude` CLI 로그인/실행
 - 터미널 폰트와 크기 설정
+- 모바일 UI: AI 패널을 숨기고 SSH 접속과 자주 쓰는 명령 중심으로 표시
+- 터미널 텍스트 복사/붙여넣기 단축키 지원
 - 저장 서버 목록 JSON Export
 - Embedded Tomcat 단독 실행 및 기존 WAR 배포 지원
 - `@ControllerMethodInfo`, `@ApiInfo` 기반 자동 API 문서화
 
-> 주의: 현재 SSH 서버 저장 기능은 `data.db` SQLite 파일에 비밀번호를 평문 저장할 수 있습니다. 개인 개발 환경 또는 신뢰할 수 있는 내부망 용도로 사용하고, 운영 환경에서는 암호화/권한/접근 제어를 보강하세요.
+> 주의: 현재 SSH 서버 저장 기능은 `data.db` SQLite 파일에 SSH 접속 정보를 저장합니다. 개인 개발 환경 또는 신뢰할 수 있는 내부망 용도로 사용하고, 운영 환경에서는 암호화/권한/접근 제어를 보강하세요.
 
 ---
 
@@ -30,7 +34,18 @@ WebTerm은 브라우저에서 SSH 터미널과 원격 AI CLI 작업 공간을 �
 - JDK 17 이상
 - Maven 3.x
 - 접속 대상 서버의 SSH 계정
-- 원격에서 AI CLI를 실행하려면 해당 서버에 `codex` 또는 `claude` 명령 설치
+- AI CLI를 실행하려면 접속 대상 SSH 서버에 `codex` 또는 `claude` 명령 설치
+
+### 기본 로그인 계정
+
+`/workspace.do` 최초 접속 시 WebTerm 로그인 다이어로그가 표시됩니다.
+
+```text
+ID: soxuser
+PW: sox2018
+```
+
+이 계정은 내부 SQLite DB의 `webterm_users` 테이블에 자동 저장/갱신됩니다. 외부에 노출되는 환경에서는 기본 계정과 비밀번호 정책을 반드시 변경하세요.
 
 ### Embedded Tomcat으로 실행
 
@@ -83,6 +98,8 @@ mvn -f pom-embedded.xml clean package
 |-----|------|
 | `/workspace.do` | SSH 탭, 빠른 명령, 원격 Codex/Claude CLI를 함께 쓰는 메인 워크스페이스 |
 | `/terminal.do` | 단일 SSH 터미널 화면 |
+| `/login.do` | WebTerm 로그인 인증 |
+| `/logout.do` | 세션 로그아웃 |
 | `/ssh-terminal` | SSH 터미널 WebSocket 엔드포인트 |
 | `/api/workspace/listServers.do` | 저장된 SSH 서버 목록 |
 | `/api/workspace/saveServer.do` | SSH 서버 저장 |
@@ -101,26 +118,52 @@ mvn -f pom-embedded.xml clean package
 ## 사용 흐름
 
 1. `/workspace.do`에 접속합니다.
-2. `SSH 연결` 버튼으로 호스트, 포트, ID, PW를 입력합니다.
-3. 필요하면 접속 정보를 저장합니다.
-4. SSH 탭에서 셸을 사용하거나, `자주 쓰는 명령`에 명령을 등록해 빠르게 실행합니다.
-5. 오른쪽 AI 도구 영역에서 `Codex` 또는 `Claude Code`를 선택하고 시작합니다.
-6. `작업 디렉토리`를 입력하면 원격 SSH 세션에서 해당 디렉터리로 이동한 뒤 CLI를 실행합니다.
+2. 로그인 다이어로그에서 `soxuser / sox2018`로 로그인합니다.
+3. `SSH 연결` 버튼으로 호스트, 포트, ID, PW를 입력합니다.
+4. 필요하면 접속 정보를 저장합니다.
+5. SSH 탭에서 셸을 사용하거나, `자주 쓰는 명령`에 명령을 등록해 빠르게 실행합니다.
+6. 데스크톱에서는 오른쪽 AI 도구 영역에서 `Codex` 또는 `Claude Code`를 선택하고 원격 SSH 서버에서 로그인/실행할 수 있습니다.
+7. 로그아웃 버튼을 누르면 서버 세션이 종료되고 다시 로그인 다이어로그로 돌아갑니다.
 
 단일 터미널만 필요하면 `/terminal.do`를 사용하면 됩니다.
+
+### 모바일 UI
+
+화면 폭이 좁은 모바일 환경에서는 AI 패널과 분할바를 숨기고 다음 UI만 표시합니다.
+
+- 서버 연결
+- 자주 쓰는 명령
+- SSH 터미널
+
+### 터미널 단축키
+
+| 단축키 | 동작 |
+|--------|------|
+| `Ctrl + Shift + C` | 터미널 선택 텍스트 복사 |
+| `Ctrl + Shift + V` | 클립보드 텍스트를 터미널에 붙여넣기 |
+| `Shift + 클릭` | 선택 텍스트가 있으면 복사, 없으면 붙여넣기 |
+
+`Ctrl + Shift + C`는 Chrome 계열 브라우저에서 개발자도구 요소 선택 단축키와 충돌할 수 있으므로, 터미널 포커스/선택 상태에서는 WebTerm이 브라우저 단축키를 차단하고 복사를 수행합니다.
 
 ---
 
 ## 데이터 저장
 
-워크스페이스 설정은 실행 작업 디렉터리의 SQLite 파일에 저장됩니다.
+워크스페이스 설정과 WebTerm 로그인 정보는 SQLite 파일에 저장됩니다.
 
 ```text
 data.db
 ```
 
+기본 위치:
+
+- `-Dwebterm.dataDir=/path/to/dir`가 있으면 해당 디렉터리
+- Embedded/Tomcat 실행 중 `catalina.base`가 있으면 `${catalina.base}/webterm-data`
+- 그 외에는 JVM 실행 작업 디렉터리
+
 생성되는 테이블:
 
+- `webterm_users`: WebTerm 로그인 계정
 - `ssh_servers`: SSH 호스트, 포트, 사용자명, 비밀번호
 - `quick_commands`: 자주 쓰는 명령
 - `workspace_settings`: 터미널 폰트, 폰트 크기
@@ -156,6 +199,7 @@ WebTerm/
 │   │   └── WorkspaceApiController.java
 │   ├── service/
 │   │   ├── SshTerminalWebSocket.java
+│   │   ├── WebTermAuthStore.java
 │   │   └── WorkspaceStore.java
 │   ├── util/
 │   └── EmbeddedApplication.java
@@ -246,12 +290,14 @@ WebTerm/
 
 ## 보안 메모
 
+- 기본 WebTerm 로그인 계정은 `soxuser / sox2018`입니다.
+- 기본 계정은 앱 기동 시 내부 DB에 자동 저장/갱신됩니다.
 - SSH 연결은 비밀번호 기반 인증을 사용합니다.
 - `StrictHostKeyChecking=no`로 설정되어 있어 호스트 키 검증을 하지 않습니다.
-- 저장된 SSH 비밀번호는 `data.db`에 평문 저장될 수 있습니다.
+- 저장된 SSH 접속 정보는 `data.db`에 저장됩니다.
 - `SecurityFilter`는 `*.do` 요청에 대해 보안 헤더, XSS 필터링, 선택적 CSRF, Rate Limiting을 적용합니다.
 - `@ApiKeyRequired`가 붙은 API는 `X-API-Key` 헤더를 검증합니다.
-- 외부에 노출되는 환경에서는 HTTPS, 접근 제어, DB 파일 권한, 비밀번호 암호화, 호스트 키 검증을 반드시 검토하세요.
+- 외부에 노출되는 환경에서는 HTTPS, 접근 제어, DB 파일 권한, 비밀번호 암호화, 기본 계정 변경, 호스트 키 검증을 반드시 검토하세요.
 
 ---
 

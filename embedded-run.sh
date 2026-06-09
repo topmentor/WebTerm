@@ -59,16 +59,14 @@ if [ ! -f "$WAR_FILE" ]; then
     exit 1
 fi
 
-# Extract WAR if not already extracted
-if [ ! -f "$EXTRACT_DIR/WEB-INF/web.xml" ]; then
-    echo "Extracting WAR..."
-    rm -rf "$EXTRACT_DIR"
-    mkdir -p "$EXTRACT_DIR"
-    cd "$EXTRACT_DIR"
-    "$JAR_CMD" xf "../WebTerm-embedded.war"
-    cd "$SCRIPT_DIR"
-    echo "Extract complete."
-fi
+# Refresh extracted WAR before running so rebuilt static assets are served.
+echo "Extracting WAR..."
+rm -rf "$EXTRACT_DIR"
+mkdir -p "$EXTRACT_DIR"
+cd "$EXTRACT_DIR"
+"$JAR_CMD" xf "../WebTerm-embedded.war"
+cd "$SCRIPT_DIR"
+echo "Extract complete."
 
 # Build classpath
 CP="$EXTRACT_DIR/WEB-INF/classes"

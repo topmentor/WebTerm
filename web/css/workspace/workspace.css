@@ -8,10 +8,26 @@ body {
     margin: 0;
 }
 
+html {
+    min-height: -webkit-fill-available;
+    -webkit-text-size-adjust: 100%;
+}
+
 body {
     background: #101418;
     color: #eef2f5;
     font-family: Arial, "Malgun Gothic", sans-serif;
+    min-height: -webkit-fill-available;
+}
+
+body.workspace-auth-pending,
+body.workspace-auth-failed {
+    background: #101418;
+}
+
+body.workspace-auth-pending .workspace-app,
+body.workspace-auth-failed .workspace-app {
+    display: none;
 }
 
 button,
@@ -21,6 +37,8 @@ select {
 }
 
 button {
+    -webkit-appearance: none;
+    appearance: none;
     height: 34px;
     border: 1px solid #3b4852;
     border-radius: 6px;
@@ -39,9 +57,9 @@ button:disabled {
     opacity: 0.45;
 }
 
-input {
+input,
+textarea {
     min-width: 0;
-    height: 36px;
     border: 1px solid #3b4852;
     border-radius: 6px;
     padding: 0 10px;
@@ -50,7 +68,29 @@ input {
     outline: none;
 }
 
+input:not([type="checkbox"]):not([type="radio"]),
+textarea {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+input {
+    height: 36px;
+}
+
+textarea {
+    width: 100%;
+    min-height: 96px;
+    padding: 9px 10px;
+    resize: vertical;
+    font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 select {
+    -webkit-appearance: menulist;
+    appearance: auto;
     min-width: 180px;
     height: 34px;
     border: 1px solid #3b4852;
@@ -70,6 +110,85 @@ input:focus {
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
     min-height: 100vh;
+    min-height: -webkit-fill-available;
+    min-height: 100dvh;
+}
+
+.workspace-login-gate {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: #101418;
+}
+
+body:not(.workspace-auth-pending):not(.workspace-auth-failed) .workspace-login-gate {
+    display: none;
+}
+
+.workspace-login-dialog {
+    display: grid;
+    gap: 18px;
+    width: calc(100vw - 32px);
+    width: min(380px, calc(100vw - 32px));
+    max-width: 380px;
+    padding: 28px;
+    border: 1px solid #2f3a43;
+    border-radius: 8px;
+    background: #182027;
+    box-shadow: 0 18px 52px rgba(0, 0, 0, 0.45);
+}
+
+.workspace-login-brand,
+.workspace-login-failed {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+}
+
+.workspace-login-brand img,
+.workspace-login-failed img {
+    width: 96px;
+    max-width: 36vw;
+}
+
+.workspace-login-brand strong {
+    color: #eef2f5;
+    font-size: 24px;
+}
+
+.workspace-login-field {
+    display: grid;
+    gap: 7px;
+}
+
+.workspace-login-field span {
+    color: #aab7c2;
+    font-size: 12px;
+}
+
+.workspace-login-field input {
+    width: 100%;
+}
+
+.workspace-login-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.workspace-login-failed h1 {
+    margin: 0;
+    color: #eef2f5;
+    font-size: 34px;
+    font-weight: 700;
 }
 
 .workspace-header {
@@ -89,8 +208,10 @@ input:focus {
 
 .header-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
+    justify-content: flex-end;
 }
 
 .status-line {
@@ -104,6 +225,10 @@ input:focus {
 
 .status-line.run {
     color: #8ee0ff;
+}
+
+.status-line.warn {
+    color: #ffd166;
 }
 
 .status-line.err {
@@ -131,7 +256,7 @@ input:focus {
 
 .workspace-pane {
     display: grid;
-    grid-template-rows: 40px auto minmax(0, 1fr);
+    grid-template-rows: 40px minmax(0, 1fr);
     min-width: 0;
     min-height: 0;
     margin: 0 6px;
@@ -139,6 +264,10 @@ input:focus {
     border-radius: 8px;
     overflow: hidden;
     background: #0c1013;
+}
+
+#sshPane {
+    grid-template-rows: 40px auto minmax(0, 1fr);
 }
 
 .pane-header {
@@ -152,6 +281,12 @@ input:focus {
     font-weight: 700;
 }
 
+.pane-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .pane-body {
     position: relative;
     min-height: 0;
@@ -161,12 +296,20 @@ input:focus {
 
 .terminal-box {
     position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     inset: 0;
     padding: 10px;
 }
 
 .terminal-placeholder {
     position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     inset: 0;
     display: grid;
     place-items: center;
@@ -176,6 +319,10 @@ input:focus {
 
 .ssh-dialog {
     position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
     inset: 0;
     z-index: 20;
     display: grid;
@@ -184,7 +331,9 @@ input:focus {
 }
 
 .ssh-dialog-box {
+    width: calc(100vw - 28px);
     width: min(560px, calc(100vw - 28px));
+    max-width: 560px;
     border: 1px solid #3b4852;
     border-radius: 8px;
     padding: 18px;
@@ -199,8 +348,16 @@ input:focus {
 
 .dialog-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 92px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 10px;
+}
+
+.dialog-grid > label:not(.port-field):not(.wide-field):not(.half-field):not(.save-field) {
+    grid-column: span 3;
+}
+
+.port-field {
+    grid-column: span 1;
 }
 
 .settings-grid {
@@ -216,6 +373,14 @@ input:focus {
     min-width: 0;
 }
 
+.wide-field {
+    grid-column: 1 / -1;
+}
+
+.half-field {
+    grid-column: span 2;
+}
+
 .dialog-grid label span,
 .agent-form > label,
 .settings-grid label {
@@ -224,7 +389,7 @@ input:focus {
 }
 
 .save-field {
-    grid-column: span 1;
+    grid-column: span 2;
 }
 
 .check-row {
@@ -240,19 +405,51 @@ input:focus {
     height: auto;
 }
 
-.quick-cmds-section {
+.workspace-tools-section {
     display: grid;
-    gap: 8px;
+    grid-template-columns: minmax(320px, 1fr) minmax(320px, 1fr);
+    gap: 12px;
     padding: 10px 18px;
     background: #11181d;
     border-bottom: 1px solid #2f3a43;
 }
 
+.tool-panel {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.tool-panel-header,
 .quick-cmds-input-row {
     display: grid;
-    grid-template-columns: auto minmax(180px, 1fr) auto minmax(120px, auto);
     gap: 8px;
     align-items: center;
+}
+
+.tool-panel-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 34px;
+}
+
+.tool-panel-header button {
+    justify-self: end;
+    width: auto;
+}
+
+.saved-server-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto auto auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.saved-server-row select {
+    width: 100%;
+}
+
+.quick-cmds-input-row {
+    grid-template-columns: auto minmax(180px, 1fr) auto minmax(120px, auto);
 }
 
 .quick-cmds-input-row strong {
@@ -369,6 +566,22 @@ input:focus {
     padding: 16px;
 }
 
+#agentPane.agent-history .pane-body {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+}
+
+#agentPane.agent-history #agentForm {
+    border-bottom: 1px solid #2f3a43;
+    background: #0c1013;
+}
+
+#agentPane.agent-history #agentTerm {
+    position: relative;
+    inset: auto;
+    min-height: 0;
+}
+
 .segmented {
     display: flex;
     gap: 12px;
@@ -407,16 +620,25 @@ input:focus {
 
     .workspace-grid {
         grid-template-columns: 1fr;
-        grid-template-rows: minmax(300px, 1fr) 6px minmax(300px, 1fr);
-        gap: 8px;
+        grid-template-rows: minmax(0, 1fr);
+        gap: 0;
     }
 
-    .workspace-splitter {
-        cursor: row-resize;
+    .workspace-splitter,
+    #agentPane {
+        display: none;
     }
 
     .workspace-pane {
         margin: 0;
+    }
+
+    #sshPane {
+        min-height: 0;
+    }
+
+    .workspace-tools-section {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -427,11 +649,17 @@ input:focus {
         grid-template-columns: 1fr;
     }
 
-    .header-actions,
     .dialog-actions,
     .form-actions,
-    .quick-cmds-input-row {
+    .quick-cmds-input-row,
+    .saved-server-row {
         width: 100%;
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .workspace-tools-section {
         grid-template-columns: 1fr;
     }
 }

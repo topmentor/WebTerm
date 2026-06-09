@@ -84,6 +84,8 @@ public class PageManager {
             } catch (Exception e2) {
                 System.out.println(BaseLogger.getLog("Error ", "심각", null, request));
                 BaseDebug.log(e2, "잘못된 접근입니다.[ " + methodName  + " ] ");
+                Throwable cause = e2.getCause() == null ? e2 : e2.getCause();
+                request.setAttribute("controllerException", cause);
             }
         }
         
@@ -102,6 +104,10 @@ public class PageManager {
             PageBean pageBean = (PageBean) request.getAttribute("pageBean");
             
             if (view == null) {  
+                if (isApiRequest(pageBean)) {
+                    writeApiError(request, response);
+                    return;
+                }
                 
                 //0. Controller 메소드 실행시 예외상황 발생으로 jsp 파일 연결(return jsp)이 안 된 것 
                 // static 클래스 메소드 실행시 예외가 발생 할 때에도 jsp 파일 연결이 안 된다.
@@ -253,6 +259,31 @@ public class PageManager {
         } catch (ServletException e2) {
             BaseDebug.log(e2, "view 페이지를 확인하십시오. ", view);
         }
+    }
+
+    private static boolean isApiRequest(PageBean pageBean) {
+        if (pageBean == null) {
+            return false;
+        }
+        String id = pageBean.getId() == null ? "" : pageBean.getId();
+        String controllerPage = pageBean.getControllerPage() == null ? "" : pageBean.getControllerPage();
+        return id.startsWith("/api/") || controllerPage.startsWith("/api/");
+    }
+
+    private static void writeApiError(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        Throwable error = (Throwable) request.getAttribute("controllerException");
+        String message = error == null || error.getMessage() == null
+                ? "API controller error"
+                : error.getMessage();
+        JSONObject json = new JSONObject();
+        json.put("result", "ERROR");
+        json.put("msg", message);
+        json.put("restime", DateTimeUtils.getTimeDateNow());
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        response.setContentType("application/json;charset=UTF-8");
+        PrintWriter writer = response.getWriter();
+        writer.print(json.toString());
+        writer.flush();
     }
     
     

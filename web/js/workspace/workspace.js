@@ -48,6 +48,102 @@
         });
     }
 
+    var DEFAULT_TERMINAL_FONT_FAMILY = '"JetBrains Mono", "Cascadia Mono", Consolas, "Courier New", monospace';
+    var terminalShortcutTerms = [];
+    var terminalShortcutGuardInstalled = false;
+
+    function isMacPlatform() {
+        return navigator.platform && navigator.platform.toLowerCase().indexOf('mac') >= 0;
+    }
+
+    function isTerminalCopyKey(event) {
+        var key = event.key ? event.key.toLowerCase() : '';
+        return (event.ctrlKey && event.shiftKey && key === 'c')
+            || (isMacPlatform() && event.metaKey && !event.ctrlKey && key === 'c');
+    }
+
+    function isTerminalPasteKey(event) {
+        var key = event.key ? event.key.toLowerCase() : '';
+        return (event.ctrlKey && event.shiftKey && key === 'v')
+            || (isMacPlatform() && event.metaKey && !event.ctrlKey && key === 'v');
+    }
+
+    function writeClipboardText(text) {
+        if (!text) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).catch(function () {});
+            return;
+        }
+
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'readonly');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(textarea);
+    }
+
+    function readClipboardText(callback) {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(function (text) {
+                callback(text || '');
+            }).catch(function () {});
+        }
+    }
+
+    function findShortcutTerminal(event) {
+        var target = event.target;
+        var activeElement = document.activeElement;
+        for (var i = terminalShortcutTerms.length - 1; i >= 0; i--) {
+            var term = terminalShortcutTerms[i];
+            if (!term || !term.element) continue;
+            var activeInside = term.element.contains(activeElement) || term.element.contains(target);
+            var selection = term.getSelection ? term.getSelection() : '';
+            if (activeInside || selection) return term;
+        }
+        return null;
+    }
+
+    function stopBrowserShortcut(event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+    }
+
+    function installTerminalShortcutGuard() {
+        if (terminalShortcutGuardInstalled) return;
+        terminalShortcutGuardInstalled = true;
+        document.addEventListener('keydown', function (event) {
+            if (!isTerminalCopyKey(event) && !isTerminalPasteKey(event)) return;
+            var term = findShortcutTerminal(event);
+            if (!term) return;
+
+            stopBrowserShortcut(event);
+            if (isTerminalCopyKey(event)) {
+                writeClipboardText(term.getSelection ? term.getSelection() : '');
+            } else {
+                readClipboardText(function (text) {
+                    if (text && term.paste) term.paste(text);
+                });
+            }
+        }, true);
+    }
+
+    function registerTerminalShortcuts(term) {
+        terminalShortcutTerms.push(term);
+        installTerminalShortcutGuard();
+    }
+
+    function unregisterTerminalShortcuts(term) {
+        terminalShortcutTerms = terminalShortcutTerms.filter(function (item) {
+            return item !== term;
+        });
+    }
+
     function makeTerminal(container) {
         var term = new Terminal({
             cursorBlink: true,
@@ -65,36 +161,28 @@
         var fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(container);
+        registerTerminalShortcuts(term);
         attachTerminalHelpers(term);
         fitAddon.fit();
         return { term: term, fitAddon: fitAddon };
     }
 
     function attachTerminalHelpers(term) {
-        var isMac = navigator.platform && navigator.platform.toLowerCase().indexOf('mac') >= 0;
-
         term.attachCustomKeyEventHandler(function (event) {
             if (event.type !== 'keydown') return true;
-            var key = event.key ? event.key.toLowerCase() : '';
-            var copyKey = (event.ctrlKey && event.shiftKey && key === 'c')
-                || (isMac && event.metaKey && !event.ctrlKey && key === 'c');
-            var pasteKey = (event.ctrlKey && event.shiftKey && key === 'v')
-                || (isMac && event.metaKey && !event.ctrlKey && key === 'v');
+            var copyKey = isTerminalCopyKey(event);
+            var pasteKey = isTerminalPasteKey(event);
 
             if (copyKey) {
                 var selection = term.getSelection();
-                if (selection && navigator.clipboard) {
-                    navigator.clipboard.writeText(selection).catch(function () {});
-                    return false;
-                }
+                writeClipboardText(selection);
+                return false;
             }
 
             if (pasteKey) {
-                if (navigator.clipboard) {
-                    navigator.clipboard.readText().then(function (text) {
-                        if (text) term.paste(text);
-                    }).catch(function () {});
-                }
+                readClipboardText(function (text) {
+                    if (text) term.paste(text);
+                });
                 return false;
             }
 
@@ -115,13 +203,11 @@
             if (!event.shiftKey || event.button !== 0) return;
             var selection = term.getSelection();
             if (selection) {
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(selection).catch(function () {});
-                }
-            } else if (navigator.clipboard) {
-                navigator.clipboard.readText().then(function (text) {
+                writeClipboardText(selection);
+            } else {
+                readClipboardText(function (text) {
                     if (text) term.paste(text);
-                }).catch(function () {});
+                });
             }
             event.preventDefault();
             event.stopPropagation();
@@ -134,10 +220,6 @@
         }
     }
 
-    function shellQuote(value) {
-        return "'" + String(value).replace(/'/g, "'\\''") + "'";
-    }
-
     function credentialKey(info) {
         return info.username + '@' + info.host + ':' + info.port;
     }
@@ -146,10 +228,14 @@
         return info.username + '@' + info.host + ':' + info.port;
     }
 
+    function shellQuote(value) {
+        return "'" + String(value).replace(/'/g, "'\"'\"'") + "'";
+    }
+
     var servers = [];
     var quickCommands = [];
     var settings = {
-        terminalFontFamily: '"JetBrains Mono"',
+        terminalFontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
         terminalFontSize: 14
     };
 
@@ -161,11 +247,38 @@
 
     var agent = {
         session: null,
+        historySession: null,
         running: false
     };
 
     function activeSession() {
         return ssh.activeId ? ssh.sessions[ssh.activeId] : null;
+    }
+
+    function connectionKey(info) {
+        return [
+            String(info.username || '').trim(),
+            String(info.host || '').trim().toLowerCase(),
+            String(parseInt(info.port, 10) || 22)
+        ].join('@');
+    }
+
+    function firstShellSession() {
+        for (var i = 0; i < ssh.order.length; i++) {
+            var session = ssh.sessions[ssh.order[i]];
+            if (session && session.kind !== 'agent') return session;
+        }
+        return null;
+    }
+
+    function canOpenSshConnection(info, statusElement) {
+        var existing = firstShellSession();
+        if (!existing) return true;
+        if (connectionKey(existing.info) === connectionKey(info)) return true;
+
+        var message = '다른 서버 연결은 추가로 열 수 없습니다. 현재 연결: ' + labelOf(existing.info);
+        setStatus(statusElement || id('sshStatus'), message, 'err');
+        return false;
     }
 
     function renderSavedServers() {
@@ -185,7 +298,7 @@
         servers.forEach(function (server) {
             var option = document.createElement('option');
             option.value = String(server.id);
-            option.textContent = labelOf(server) + (server.password ? '' : ' (PW 필요)');
+            option.textContent = labelOf(server) + ' (PW 입력)';
             select.appendChild(option);
         });
     }
@@ -214,7 +327,7 @@
         if (!isFinite(fontSize)) fontSize = 14;
         fontSize = Math.max(10, Math.min(24, fontSize));
         return {
-            terminalFontFamily: value.terminalFontFamily || '"JetBrains Mono"',
+            terminalFontFamily: value.terminalFontFamily || DEFAULT_TERMINAL_FONT_FAMILY,
             terminalFontSize: fontSize
         };
     }
@@ -277,7 +390,9 @@
             host: info.host,
             port: info.port,
             username: info.username,
-            password: savePassword ? info.password : ''
+            password: '',
+            privateKey: '',
+            privateKeyPassphrase: ''
         }).then(function () {
             return loadServers();
         });
@@ -376,11 +491,16 @@
             id('sshHost').value = server.host || '';
             id('sshPort').value = server.port || 22;
             id('sshUser').value = server.username || '';
-            id('sshPassword').value = server.password || '';
+            id('sshPassword').value = '';
             id('saveSshInfo').checked = true;
-            id('saveSshPassword').checked = !!server.password;
+        } else {
+            id('sshHost').value = '';
+            id('sshPort').value = 22;
+            id('sshUser').value = '';
+            id('sshPassword').value = '';
+            id('saveSshInfo').checked = true;
         }
-        id('sshHost').focus();
+        id(server ? 'sshPassword' : 'sshHost').focus();
     }
 
     function closeSshDialog() {
@@ -401,13 +521,16 @@
             id: sessionId,
             kind: options.kind || 'shell',
             info: info,
-            label: labelOf(info),
+            label: options.label || labelOf(info),
             panel: panel,
             term: terminalParts.term,
             fitAddon: terminalParts.fitAddon,
             socket: null,
             connected: false,
-            closing: false
+            closing: false,
+            agentLaunch: !!options.agentLaunch,
+            agentCommand: options.agentCommand || '',
+            agentOutputBuffer: ''
         };
         ssh.sessions[sessionId] = session;
         if (!options.detached) {
@@ -419,6 +542,9 @@
 
     function connectSession(info, options) {
         options = options || {};
+        if (!options.detached && !canOpenSshConnection(info, id('sshConnectStatus'))) {
+            return null;
+        }
         var session = createSession(info, options);
         session.term.writeln('SSH connecting to ' + labelOf(info) + ' ...');
         setStatus(id('sshStatus'), '연결 중', 'run');
@@ -433,6 +559,8 @@
                 port: info.port,
                 username: info.username,
                 password: info.password,
+                privateKey: info.privateKey || '',
+                privateKeyPassphrase: info.privateKeyPassphrase || '',
                 initialCommand: options.initialCommand || '',
                 cols: session.term.cols,
                 rows: session.term.rows
@@ -442,6 +570,9 @@
             var data = JSON.parse(event.data);
             if (data.type === 'output') {
                 session.term.write(data.data);
+                if (session.kind === 'agent') {
+                    updateAgentStatusFromOutput(session, data.data);
+                }
             } else if (data.type === 'status') {
                 if (data.state === 'CONNECTED') {
                     session.connected = true;
@@ -451,21 +582,50 @@
                     session.term.focus();
                     if (options.onConnected) options.onConnected(session);
                 } else if (data.state === 'DISCONNECTED') {
-                    closeSession(session.id, false);
+                    if (session.kind === 'agent' && session.preserveTerminalOnClose) {
+                        preserveAgentTerminal(session, data.message || '원격 AI 접속이 종료되었습니다.');
+                    } else {
+                        closeSession(session.id, false);
+                    }
                 } else if (session.id === ssh.activeId) {
                     setStatus(id('sshStatus'), data.message, 'run');
                 }
             } else if (data.type === 'error') {
                 session.term.writeln('\r\n[ERROR] ' + data.message);
+                if (session.kind === 'agent') {
+                    setStatus(id('agentStatus'), data.message, 'err');
+                    setAgentPrimaryButtonsDisabled(false);
+                    updateAgentActionState();
+                }
                 if (session.id === ssh.activeId) setStatus(id('sshStatus'), data.message, 'err');
                 setStatus(id('sshConnectStatus'), data.message, 'err');
             }
         };
         session.socket.onclose = function () {
-            if (!session.closing) closeSession(session.id, false);
+            if (session.kind === 'agent' && session.preserveTerminalOnClose) {
+                preserveAgentTerminal(session, '원격 AI 접속이 종료되었습니다.');
+            } else if (!session.closing) {
+                var failedBeforeConnect = !session.connected;
+                closeSession(session.id, false);
+                if (failedBeforeConnect) {
+                    setStatus(id('sshStatus'), 'SSH WebSocket 연결이 닫혔습니다. HTTPS 프록시의 WebSocket upgrade 설정을 확인하세요.', 'err');
+                    setStatus(id('sshConnectStatus'), 'SSH WebSocket 연결 실패. wss 프록시 설정 또는 Tomcat WebSocket 배포를 확인하세요.', 'err');
+                    if (session.kind === 'agent') {
+                        setStatus(id('agentStatus'), '원격 AI SSH 연결 실패. wss 프록시 설정 또는 원격 SSH 인증 정보를 확인하세요.', 'err');
+                        setAgentPrimaryButtonsDisabled(false);
+                    }
+                }
+            }
         };
         session.socket.onerror = function () {
-            if (session.id === ssh.activeId) setStatus(id('sshStatus'), 'WebSocket 오류', 'err');
+            if (session.kind === 'agent') {
+                setStatus(id('agentStatus'), '원격 AI WebSocket 오류. HTTPS 프록시의 Upgrade/Connection 헤더 설정을 확인하세요.', 'err');
+                setAgentPrimaryButtonsDisabled(false);
+            }
+            if (session.id === ssh.activeId) {
+                setStatus(id('sshStatus'), 'SSH WebSocket 오류. HTTPS 프록시의 Upgrade/Connection 헤더 설정을 확인하세요.', 'err');
+            }
+            setStatus(id('sshConnectStatus'), 'SSH WebSocket 오류. 서버 프록시가 wss를 지원해야 합니다.', 'err');
         };
         session.term.onData(function (value) {
             send(session.socket, { type: 'input', data: value });
@@ -478,10 +638,15 @@
             host: id('sshHost').value.trim(),
             port: parseInt(id('sshPort').value, 10) || 22,
             username: id('sshUser').value.trim(),
-            password: id('sshPassword').value
+            password: id('sshPassword').value,
+            privateKey: '',
+            privateKeyPassphrase: ''
         };
         if (!info.host || !info.username || !info.password) {
             setStatus(id('sshConnectStatus'), '주소, ID, PW를 입력하세요.', 'err');
+            return;
+        }
+        if (!canOpenSshConnection(info, id('sshConnectStatus'))) {
             return;
         }
         var connectNow = function () {
@@ -489,7 +654,7 @@
             id('sshPassword').value = '';
         };
         if (id('saveSshInfo').checked) {
-            saveServer(info, id('saveSshPassword').checked)
+            saveServer(info, false)
                 .then(connectNow)
                 .catch(function (err) {
                     setStatus(id('sshConnectStatus'), '저장 실패: ' + err.message, 'err');
@@ -555,10 +720,16 @@
         if (!session) {
             setStatus(id('sshStatus'), '미연결', '');
             id('disconnectSsh').disabled = true;
+            updateAgentActionState();
             return;
         }
         id('disconnectSsh').disabled = false;
         setStatus(id('sshStatus'), session.label + (session.connected ? '' : ' 연결 중'), session.connected ? 'ok' : 'run');
+        updateAgentActionState();
+    }
+
+    function updateAgentActionState() {
+        id('resetAgent').disabled = !(agent.session || agent.historySession);
     }
 
     function resizeSession(session) {
@@ -577,6 +748,7 @@
         }
         if (session.term) {
             try { session.term.dispose(); } catch (e) {}
+            unregisterTerminalShortcuts(session.term);
         }
         if (session.panel && session.panel.parentNode) session.panel.parentNode.removeChild(session.panel);
         delete ssh.sessions[sessionId];
@@ -606,73 +778,187 @@
         id('agentTitle').textContent = selectedAgent() === 'codex' ? 'Codex' : 'Claude Code';
     }
 
-    function buildRemoteAgentCommand(kind, cwd, customCommand) {
-        var command = customCommand || (kind === 'claude' ? 'claude' : 'codex');
-        if (cwd) {
-            return 'cd ' + shellQuote(cwd) + ' && ' + command;
-        }
-        return command;
+    function setAgentPrimaryButtonsDisabled(disabled) {
+        id('loginAgentAuth').disabled = disabled;
+        id('startAgent').disabled = disabled;
     }
 
-    function startAgent() {
-        var base = activeSession();
+    function agentCommandForKind(kind) {
+        return kind === 'claude' ? 'claude' : 'codex';
+    }
+
+    function agentLoginCommandForKind(kind) {
+        return kind === 'claude' ? 'claude auth login' : 'codex login --device-auth';
+    }
+
+    function buildRemoteAgentLoginCommand(kind) {
+        var command = agentCommandForKind(kind);
+        var loginCommand = agentLoginCommandForKind(kind);
+        return 'WEBTERM_AI_CMD=' + shellQuote(command)
+            + '; WEBTERM_AI_LOGIN=' + shellQuote(loginCommand)
+            + '; printf "\\r\\n[WebTerm] Checking remote AI command: %s\\r\\n" "$WEBTERM_AI_CMD"'
+            + '; if ! command -v "$WEBTERM_AI_CMD" >/dev/null 2>&1; then '
+            + 'printf "\\r\\n[WebTerm] ERROR: command not found: %s\\r\\n" "$WEBTERM_AI_CMD"'
+            + '; else '
+            + 'printf "\\r\\n[WebTerm] Login command started. Follow the URL/code shown below.\\r\\n"'
+            + '; $WEBTERM_AI_LOGIN'
+            + '; printf "\\r\\n[WebTerm] Login command finished. You can press 시작.\\r\\n"'
+            + '; fi';
+    }
+
+    function buildRemoteAgentCommand(kind) {
+        var command = agentCommandForKind(kind);
+        return 'WEBTERM_AI_CMD=' + shellQuote(command)
+            + '; printf "\\r\\n[WebTerm] Checking remote AI command: %s\\r\\n" "$WEBTERM_AI_CMD"'
+            + '; if ! command -v "$WEBTERM_AI_CMD" >/dev/null 2>&1; then '
+            + 'printf "\\r\\n[WebTerm] ERROR: command not found: %s\\r\\n" "$WEBTERM_AI_CMD"'
+            + '; else '
+            + 'printf "\\r\\n[WebTerm] Starting ' + command + ' ...\\r\\n"'
+            + '; "$WEBTERM_AI_CMD"'
+            + '; fi';
+    }
+
+    function updateAgentStatusFromOutput(session, output) {
+        session.agentOutputBuffer = ((session.agentOutputBuffer || '') + output).slice(-4096);
+        var text = session.agentOutputBuffer;
+        if (text.indexOf('[WebTerm] Login command started.') >= 0) {
+            setStatus(id('agentStatus'), '원격 로그인 진행 중: 터미널의 URL/코드를 브라우저에서 완료하세요.', 'run');
+            setAgentPrimaryButtonsDisabled(false);
+        } else if (text.indexOf('[WebTerm] Starting ' + session.agentCommand) >= 0) {
+            setStatus(id('agentStatus'), '원격 실행 중: ' + session.agentCommand, 'ok');
+        } else if (text.indexOf('[WebTerm] ERROR:') >= 0) {
+            setStatus(id('agentStatus'), '원격 실행 실패: 터미널 메시지를 확인하세요.', 'err');
+            setAgentPrimaryButtonsDisabled(false);
+            updateAgentActionState();
+        }
+    }
+
+    function runAgentRemote(mode) {
+        var launch = mode === 'start';
+        var login = mode === 'login';
+        var base = activeSession() || firstShellSession();
         if (!base || !base.connected) {
-            setStatus(id('agentStatus'), '활성 SSH 탭이 필요합니다.', 'err');
+            setStatus(id('agentStatus'), '먼저 SSH 서버에 연결하세요.', 'err');
+            updateAgentActionState();
             return;
         }
         if (agent.session) {
             closeSession(agent.session.id, true);
             agent.session = null;
         }
+        if (agent.historySession) {
+            try { agent.historySession.term.dispose(); } catch (e) {}
+            unregisterTerminalShortcuts(agent.historySession.term);
+            agent.historySession = null;
+        }
 
         var kind = selectedAgent();
-        var remoteCommand = buildRemoteAgentCommand(
-            kind,
-            id('agentCwd').value.trim(),
-            id('agentCommand').value.trim()
-        );
+        var command = agentCommandForKind(kind);
+        id('agentPane').classList.remove('agent-history');
         id('agentForm').style.display = 'none';
         id('agentTerm').style.display = '';
         id('agentTerm').innerHTML = '';
-        setStatus(id('agentStatus'), '원격 SSH에서 시작 중...', 'run');
-        id('startAgent').disabled = true;
+        setStatus(id('agentStatus'), (login ? '원격 SSH에서 로그인 시작 중: ' : '원격 SSH에서 시작 중: ') + labelOf(base.info), 'run');
+        setAgentPrimaryButtonsDisabled(true);
 
         var info = {
             host: base.info.host,
             port: base.info.port,
             username: base.info.username,
-            password: base.info.password
+            password: base.info.password || '',
+            privateKey: base.info.privateKey || '',
+            privateKeyPassphrase: base.info.privateKeyPassphrase || ''
         };
         var session = connectSession(info, {
             kind: 'agent',
             detached: true,
             container: id('agentTerm'),
-            initialCommand: remoteCommand,
+            initialCommand: login ? buildRemoteAgentLoginCommand(kind) : buildRemoteAgentCommand(kind),
+            agentLaunch: launch,
+            agentCommand: command,
+            label: 'Remote ' + (kind === 'claude' ? 'Claude Code' : 'Codex') + ' - ' + labelOf(base.info),
             onConnected: function () {
-                agent.running = true;
-                id('stopAgent').disabled = false;
-                setStatus(id('agentStatus'), '원격 실행 중: ' + remoteCommand, 'ok');
+                agent.running = launch;
+                id('resetAgent').disabled = false;
+                updateAgentActionState();
+                setStatus(id('agentStatus'), login
+                    ? '원격 로그인 진행 중: ' + command + ' @ ' + labelOf(base.info)
+                    : '원격 실행 중: ' + command + ' @ ' + labelOf(base.info), 'run');
             }
         });
         agent.session = session;
-        session.panel.style.display = '';
+        if (session) {
+            session.panel.style.display = '';
+            window.setTimeout(function () {
+                resizeSession(session);
+                session.term.focus();
+            }, 0);
+        }
+    }
+
+    function startAgent() {
+        runAgentRemote('start');
+    }
+
+    function loginAgentAuth() {
+        runAgentRemote('login');
+    }
+
+    function preserveAgentTerminal(session, message) {
+        if (!session || session.preservedTerminal) return;
+        session.preservedTerminal = true;
+        session.connected = false;
+        session.closing = true;
+        if (session.socket) {
+            try { session.socket.close(); } catch (e) {}
+        }
+        delete ssh.sessions[session.id];
+        if (agent.session && agent.session.id === session.id) {
+            agent.session = null;
+        }
+        agent.historySession = session;
+        agent.running = false;
+        id('agentPane').classList.add('agent-history');
+        id('agentForm').style.display = 'grid';
+        id('agentTerm').style.display = '';
+        id('resetAgent').disabled = false;
+        setAgentPrimaryButtonsDisabled(false);
+        updateAgentActionState();
+        setStatus(id('agentStatus'), message || '원격 AI CLI가 종료되었습니다.', 'ok');
     }
 
     function cleanupAgentUi() {
-        id('stopAgent').disabled = true;
-        id('startAgent').disabled = false;
+        id('resetAgent').disabled = true;
+        setAgentPrimaryButtonsDisabled(false);
+        updateAgentActionState();
         id('agentTerm').style.display = 'none';
         id('agentTerm').innerHTML = '';
         id('agentForm').style.display = 'grid';
+        id('agentPane').classList.remove('agent-history');
     }
 
-    function stopAgent() {
+    function resetAgent() {
+        setStatus(id('agentStatus'), '터미널 초기화 중...', 'run');
+        id('resetAgent').disabled = true;
+
         if (agent.session) {
             closeSession(agent.session.id, true);
             agent.session = null;
         }
+        if (agent.historySession) {
+            if (agent.historySession.socket) {
+                try { send(agent.historySession.socket, { type: 'disconnect' }); } catch (e) {}
+                try { agent.historySession.socket.close(); } catch (e) {}
+            }
+            if (agent.historySession.term) {
+                try { agent.historySession.term.dispose(); } catch (e) {}
+                unregisterTerminalShortcuts(agent.historySession.term);
+            }
+            agent.historySession = null;
+        }
         agent.running = false;
         cleanupAgentUi();
+        setStatus(id('agentStatus'), '초기화됨', 'ok');
     }
 
     function setupSplitter() {
@@ -701,71 +987,139 @@
         });
     }
 
-    id('openSshDialog').addEventListener('click', function () { openSshDialog(); });
-    id('cancelSshDialog').addEventListener('click', closeSshDialog);
-    id('connectSsh').addEventListener('click', connectFromDialog);
-    id('disconnectSsh').addEventListener('click', function () {
-        var session = activeSession();
-        if (session) closeSession(session.id, true);
-    });
-    id('openSavedServer').addEventListener('click', function () {
-        var server = selectedSavedServer();
-        if (!server) return;
-        if (server.password) {
-            connectSession({
-                host: server.host,
-                port: server.port,
-                username: server.username,
-                password: server.password
-            });
-        } else {
-            openSshDialog(server);
-            setStatus(id('sshConnectStatus'), '저장된 PW가 없습니다. PW 입력 후 연결하세요.', 'run');
-        }
-    });
-    id('deleteSavedServer').addEventListener('click', function () {
-        var server = selectedSavedServer();
-        if (!server) return;
-        postForm('/api/workspace/deleteServer.do', { id: server.id })
-            .then(loadServers)
-            .catch(function (err) {
-                setStatus(id('workspaceStatus'), '삭제 실패: ' + err.message, 'err');
-            });
-    });
-    id('exportSshServers').addEventListener('click', exportSshServers);
-    id('openSettings').addEventListener('click', openSettingsDialog);
-    id('cancelSettings').addEventListener('click', closeSettingsDialog);
-    id('saveSettings').addEventListener('click', saveSettings);
-    id('addQuickCommand').addEventListener('click', addQuickCommand);
-    id('quickCommandInput').addEventListener('keydown', function (event) {
-        if (event.key === 'Enter') addQuickCommand();
-    });
-    id('startAgent').addEventListener('click', startAgent);
-    id('stopAgent').addEventListener('click', stopAgent);
+    var workspaceInitialized = false;
+    var workspaceLoginBusy = false;
 
-    var radios = document.getElementsByName('agentKind');
-    for (var i = 0; i < radios.length; i++) {
-        radios[i].addEventListener('change', refreshAgentTitle);
+    function showWorkspace() {
+        document.body.classList.remove('workspace-auth-pending', 'workspace-auth-failed');
+        var app = document.querySelector('.workspace-app');
+        if (app) app.setAttribute('aria-hidden', 'false');
+        initWorkspace();
     }
 
-    ['sshHost', 'sshUser', 'sshPassword'].forEach(function (name) {
+    function showLoginFailure() {
+        document.body.classList.remove('workspace-auth-pending');
+        document.body.classList.add('workspace-auth-failed');
+        id('workspaceLoginDialog').style.display = 'none';
+        id('workspaceLoginFailed').style.display = 'grid';
+    }
+
+    function logoutWorkspace() {
+        fetch(apiUrl('/logout.do'), { method: 'GET', cache: 'no-store' })
+            .catch(function () {})
+            .then(function () {
+                window.location.href = apiUrl('/workspace.do');
+            });
+    }
+
+    function loginWorkspace() {
+        if (workspaceLoginBusy) return;
+        var userId = id('workspaceLoginUserId').value.trim();
+        var password = id('workspaceLoginPassword').value;
+        if (!userId || !password) {
+            setStatus(id('workspaceLoginStatus'), 'ID와 비밀번호를 입력하세요.', 'err');
+            id(userId ? 'workspaceLoginPassword' : 'workspaceLoginUserId').focus();
+            return;
+        }
+
+        workspaceLoginBusy = true;
+        id('workspaceLoginConfirm').disabled = true;
+        setStatus(id('workspaceLoginStatus'), '확인 중...', 'run');
+
+        postForm('/login.do', { userId: userId, passwd: password })
+            .then(function (data) {
+                if (data.result === 'OK') {
+                    id('workspaceLoginPassword').value = '';
+                    showWorkspace();
+                } else {
+                    showLoginFailure();
+                }
+            })
+            .catch(showLoginFailure)
+            .then(function () {
+                workspaceLoginBusy = false;
+                id('workspaceLoginConfirm').disabled = false;
+            });
+    }
+
+    function initWorkspace() {
+        if (workspaceInitialized) return;
+        workspaceInitialized = true;
+
+        id('openSshDialog').addEventListener('click', function () { openSshDialog(); });
+        id('cancelSshDialog').addEventListener('click', closeSshDialog);
+        id('connectSsh').addEventListener('click', connectFromDialog);
+        id('disconnectSsh').addEventListener('click', function () {
+            var session = activeSession();
+            if (session) closeSession(session.id, true);
+        });
+        id('openSavedServer').addEventListener('click', function () {
+            var server = selectedSavedServer();
+            if (!server) return;
+            openSshDialog(server);
+            setStatus(id('sshConnectStatus'), 'PW를 입력한 뒤 연결하세요.', 'run');
+        });
+        id('deleteSavedServer').addEventListener('click', function () {
+            var server = selectedSavedServer();
+            if (!server) return;
+            postForm('/api/workspace/deleteServer.do', { id: server.id })
+                .then(loadServers)
+                .catch(function (err) {
+                    setStatus(id('workspaceStatus'), '삭제 실패: ' + err.message, 'err');
+                });
+        });
+        id('exportSshServers').addEventListener('click', exportSshServers);
+        id('openSettings').addEventListener('click', openSettingsDialog);
+        id('logoutWorkspace').addEventListener('click', logoutWorkspace);
+        id('cancelSettings').addEventListener('click', closeSettingsDialog);
+        id('saveSettings').addEventListener('click', saveSettings);
+        id('addQuickCommand').addEventListener('click', addQuickCommand);
+        id('quickCommandInput').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') addQuickCommand();
+        });
+        id('startAgent').addEventListener('click', startAgent);
+        id('loginAgentAuth').addEventListener('click', loginAgentAuth);
+        id('resetAgent').addEventListener('click', resetAgent);
+
+        var radios = document.getElementsByName('agentKind');
+        for (var i = 0; i < radios.length; i++) {
+            radios[i].addEventListener('change', refreshAgentTitle);
+        }
+
+        ['sshHost', 'sshUser', 'sshPassword'].forEach(function (name) {
+            id(name).addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') connectFromDialog();
+            });
+        });
+
+        window.addEventListener('resize', function () {
+            window.clearTimeout(window.__workspaceFitTimer);
+            window.__workspaceFitTimer = window.setTimeout(function () {
+                ssh.order.forEach(function (sessionId) { resizeSession(ssh.sessions[sessionId]); });
+                if (agent.session) resizeSession(agent.session);
+            }, 80);
+        });
+
+        setupSplitter();
+        loadSettings();
+        loadServers();
+        loadCommands();
+        refreshAgentTitle();
+        renderTabs();
+        updateAgentActionState();
+    }
+
+    id('workspaceLoginConfirm').addEventListener('click', loginWorkspace);
+    ['workspaceLoginUserId', 'workspaceLoginPassword'].forEach(function (name) {
         id(name).addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') connectFromDialog();
+            if (event.key === 'Enter') loginWorkspace();
         });
     });
-
-    window.addEventListener('resize', function () {
-        window.clearTimeout(window.__workspaceFitTimer);
-        window.__workspaceFitTimer = window.setTimeout(function () {
-            ssh.order.forEach(function (sessionId) { resizeSession(ssh.sessions[sessionId]); });
-            if (agent.session) resizeSession(agent.session);
-        }, 80);
+    id('workspaceLoginUserId').addEventListener('focus', function () {
+        id('workspaceLoginUserId').select();
     });
-
-    setupSplitter();
-    loadSettings();
-    loadServers();
-    loadCommands();
-    refreshAgentTitle();
-    renderTabs();
+    id('workspaceLoginPassword').addEventListener('focus', function () {
+        id('workspaceLoginPassword').select();
+    });
+    id('workspaceLoginPassword').focus();
 })();

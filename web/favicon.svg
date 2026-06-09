@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="shell" x1="10" y1="8" x2="54" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1f2a33"/>
+      <stop offset="1" stop-color="#050708"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0b1116"/>
+  <rect x="7" y="10" width="50" height="44" rx="7" fill="url(#shell)" stroke="#2f3a43" stroke-width="2"/>
+  <rect x="7" y="10" width="50" height="11" rx="7" fill="#182027"/>
+  <circle cx="15" cy="15.5" r="2" fill="#ff6f61"/>
+  <circle cx="22" cy="15.5" r="2" fill="#ffd166"/>
+  <circle cx="29" cy="15.5" r="2" fill="#72d48b"/>
+  <path d="M17 32l8 6-8 6" fill="none" stroke="#8ee0ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M31 44h15" fill="none" stroke="#eef2f5" stroke-width="5" stroke-linecap="round"/>
+  <rect x="47" y="28" width="4" height="18" rx="2" fill="#4ba3c7"/>
+</svg>

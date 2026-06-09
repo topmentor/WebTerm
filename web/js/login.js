@@ -24,6 +24,7 @@ function doLogin(){
     var timeStr = getTimeNow();
     console.log(timeStr);
 
+    var userId = $('#idInput').val();
     var passwd = $('#passwordInput').val();
 
     $.ajax({
@@ -33,6 +34,7 @@ function doLogin(){
         cache: false,
         data : {
             timeNow : timeStr,
+            userId : userId,
             passwd : passwd
         },
         success : function(data){

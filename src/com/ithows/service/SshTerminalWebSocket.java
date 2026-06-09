@@ -6,6 +6,8 @@ import org.json.JSONObject;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import javax.websocket.CloseReason;
@@ -75,15 +77,19 @@ public class SshTerminalWebSocket {
         int port = json.optInt("port", 22);
         String username = json.optString("username", "").trim();
         String password = json.optString("password", "");
+        String privateKey = json.optString("privateKey", "");
+        String privateKeyPassphrase = json.optString("privateKeyPassphrase", "");
         String initialCommand = json.optString("initialCommand", "").trim();
         int cols = json.optInt("cols", 80);
         int rows = json.optInt("rows", 24);
 
-        validate(host, port, username, password);
-        sendStatus(webSession, "CONNECTING", host + ":" + port + " 접속 중...");
+        validate(host, port, username, password, privateKey);
+        sendStatus(webSession, "CONNECTING", "웹서버에서 " + host + ":" + port + " 접속 확인 중...");
+        verifyTcpReachable(host, port);
+        sendStatus(webSession, "CONNECTING", "웹서버에서 " + host + ":" + port + " SSH 인증 중...");
 
         SshConnection connection = new SshConnection(webSession);
-        connection.connect(host, port, username, password, cols, rows);
+        connection.connect(host, port, username, password, privateKey, privateKeyPassphrase, cols, rows);
         webSession.getUserProperties().put(CONNECTION_KEY, connection);
 
         sendStatus(webSession, "CONNECTED", username + "@" + host + " 연결됨");
@@ -92,7 +98,7 @@ public class SshTerminalWebSocket {
         }
     }
 
-    private void validate(String host, int port, String username, String password) {
+    private void validate(String host, int port, String username, String password, String privateKey) {
         if (host.length() == 0) {
             throw new IllegalArgumentException("주소를 입력하세요.");
         }
@@ -102,8 +108,21 @@ public class SshTerminalWebSocket {
         if (username.length() == 0) {
             throw new IllegalArgumentException("ID를 입력하세요.");
         }
-        if (password.length() == 0) {
-            throw new IllegalArgumentException("PW를 입력하세요.");
+        if (password.length() == 0 && privateKey.trim().length() == 0) {
+            throw new IllegalArgumentException("PW 또는 SSH private key를 입력하세요.");
+        }
+    }
+
+    private void verifyTcpReachable(String host, int port) throws Exception {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), CONNECT_TIMEOUT_MS);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "웹서버(Tomcat)에서 " + host + ":" + port
+                            + " 로 TCP 연결할 수 없습니다. 방화벽, 보안그룹, VPN, 서버 outbound 정책 또는 대상 SSH 포트를 확인하세요. 원인: "
+                            + e.getMessage(),
+                    e
+            );
         }
     }
 
@@ -169,14 +188,25 @@ public class SshTerminalWebSocket {
         }
 
         void connect(String host, int port, String username, String password,
+                     String privateKey, String privateKeyPassphrase,
                      int cols, int rows) throws Exception {
             JSch jsch = new JSch();
+            if (privateKey != null && privateKey.trim().length() > 0) {
+                byte[] keyBytes = privateKey.getBytes(StandardCharsets.UTF_8);
+                byte[] passphraseBytes = null;
+                if (privateKeyPassphrase != null && privateKeyPassphrase.length() > 0) {
+                    passphraseBytes = privateKeyPassphrase.getBytes(StandardCharsets.UTF_8);
+                }
+                jsch.addIdentity(username + "@" + host, keyBytes, null, passphraseBytes);
+            }
             sshSession = jsch.getSession(username, host, port);
-            sshSession.setPassword(password);
+            if (password != null && password.length() > 0) {
+                sshSession.setPassword(password);
+            }
 
             Properties config = new Properties();
             config.put("StrictHostKeyChecking", "no");
-            config.put("PreferredAuthentications", "password,keyboard-interactive");
+            config.put("PreferredAuthentications", "publickey,password,keyboard-interactive");
             sshSession.setConfig(config);
             sshSession.connect(CONNECT_TIMEOUT_MS);
 

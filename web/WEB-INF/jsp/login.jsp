@@ -19,7 +19,7 @@
 <div class="login-popup" id="loginPopup">
     <div class="login-popup_img"><img src="${servletPath}/images/Logo_LTEX.png" /></div>
     <div class="login-popup-inputGroup">
-        <div class="login-popup_idInput"><input type="text" placeholder="ID" id="idInput" value="etriadmin" readonly></div>
+        <div class="login-popup_idInput"><input type="text" placeholder="ID" id="idInput" value="soxuser"></div>
         <div class="login-popup_pwInput"><input type="password" placeholder="Password" id="passwordInput"></div>
     </div>
     <div class="login-popup-buttonGroup">

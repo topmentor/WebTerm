@@ -63,16 +63,14 @@ if not exist "%WAR_FILE%" (
     exit /b 1
 )
 
-REM Extract WAR if not already extracted or WAR is newer
-if not exist "%EXTRACT_DIR%\WEB-INF\web.xml" (
-    echo Extracting WAR...
-    if exist "%EXTRACT_DIR%" rmdir /s /q "%EXTRACT_DIR%"
-    mkdir "%EXTRACT_DIR%"
-    pushd "%EXTRACT_DIR%"
-    "%JAR_CMD%" xf "..\WebTerm-embedded.war"
-    popd
-    echo Extract complete.
-)
+REM Refresh extracted WAR before running so rebuilt static assets are served.
+echo Extracting WAR...
+if exist "%EXTRACT_DIR%" rmdir /s /q "%EXTRACT_DIR%"
+mkdir "%EXTRACT_DIR%"
+pushd "%EXTRACT_DIR%"
+"%JAR_CMD%" xf "..\WebTerm-embedded.war"
+popd
+echo Extract complete.
 
 REM Build classpath: WEB-INF/classes + all JARs in WEB-INF/lib
 set CP=%EXTRACT_DIR%\WEB-INF\classes

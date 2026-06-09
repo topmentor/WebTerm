@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- 개념 객체와 Java 객체와의 연결을 이곳에서 한다.  -->
-<web-app version="2.5" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+<web-app version="3.1"
+         xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd">
     <session-config>
         <session-timeout>180</session-timeout>
     </session-config>
@@ -11,6 +14,22 @@
         <servlet-name>DispatcherServlet</servlet-name>
         <servlet-class>com.ithows.base.DispatcherServlet</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>WebSocketStatusServlet</servlet-name>
+        <servlet-class>com.ithows.service.WebSocketStatusServlet</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>WorkspaceApiServlet</servlet-name>
+        <servlet-class>com.ithows.service.WorkspaceApiServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>WebSocketStatusServlet</servlet-name>
+        <url-pattern>/api/workspace/websocketStatus.do</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>WorkspaceApiServlet</servlet-name>
+        <url-pattern>/api/workspace/*</url-pattern>
+    </servlet-mapping>
     <servlet-mapping>
         <servlet-name>DispatcherServlet</servlet-name>
         <url-pattern>*.do</url-pattern>
@@ -68,6 +87,10 @@
     <!--        <listener>
         <listener-class>com.ithows.base.SOXServletContextListener</listener-class>
     </listener>-->
+    
+    <listener>
+        <listener-class>com.ithows.service.WebSocketEndpointInitializer</listener-class>
+    </listener>
     
     <listener>
         <listener-class>com.ithows.base.SOXSessionListener</listener-class>

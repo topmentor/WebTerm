@@ -3,6 +3,7 @@ package com.ithows.controller;
 import com.ithows.HttpUtil;
 import com.ithows.base.ControllerClassInfo;
 import com.ithows.base.ControllerMethodInfo;
+import com.ithows.service.SshKeyInstaller;
 import com.ithows.service.WorkspaceStore;
 import org.json.JSONObject;
 
@@ -15,6 +16,7 @@ import java.io.PrintWriter;
 public class WorkspaceApiController {
 
     private final WorkspaceStore store = new WorkspaceStore();
+    private final SshKeyInstaller sshKeyInstaller = new SshKeyInstaller();
 
     @ControllerMethodInfo(id = "/api/workspace/listServers.do")
     public String listServers(HttpSession session, HttpServletRequest request,
@@ -32,10 +34,12 @@ public class WorkspaceApiController {
         int port = HttpUtil.getParameterInt(request, "port", 22);
         String username = HttpUtil.getParameterString(request, "username", "").trim();
         String password = HttpUtil.getParameterString(request, "password", "");
+        String privateKey = HttpUtil.getParameterString(request, "privateKey", "");
+        String privateKeyPassphrase = HttpUtil.getParameterString(request, "privateKeyPassphrase", "");
         validateServer(host, port, username);
 
         JSONObject out = ok();
-        out.put("server", store.saveServer(host, port, username, password));
+        out.put("server", store.saveServer(host, port, username, password, privateKey, privateKeyPassphrase));
         writeJson(response, out);
         return "NO_PAGE";
     }
@@ -46,6 +50,32 @@ public class WorkspaceApiController {
         long id = HttpUtil.getParameterLong(request, "id", 0);
         JSONObject out = ok();
         out.put("deleted", id > 0 && store.deleteServer(id));
+        writeJson(response, out);
+        return "NO_PAGE";
+    }
+
+    @ControllerMethodInfo(id = "/api/workspace/installSshKey.do")
+    public String installSshKey(HttpSession session, HttpServletRequest request,
+                                HttpServletResponse response, Object command) throws Exception {
+        String host = HttpUtil.getParameterString(request, "host", "").trim();
+        int port = HttpUtil.getParameterInt(request, "port", 22);
+        String username = HttpUtil.getParameterString(request, "username", "").trim();
+        String password = HttpUtil.getParameterString(request, "password", "");
+        String privateKey = HttpUtil.getParameterString(request, "privateKey", "");
+        validateServer(host, port, username);
+
+        JSONObject installed = sshKeyInstaller.install(host, port, username, password, privateKey);
+        JSONObject saved = store.saveServerPrivateKey(
+                host,
+                port,
+                username,
+                installed.getString("privateKey"),
+                ""
+        );
+
+        JSONObject out = ok();
+        out.put("server", saved);
+        out.put("publicKey", installed.getString("publicKey"));
         writeJson(response, out);
         return "NO_PAGE";
     }
@@ -107,6 +137,20 @@ public class WorkspaceApiController {
                                 HttpServletResponse response, Object command) throws Exception {
         response.setHeader("Content-Disposition", "attachment; filename=\"ssh-servers.json\"");
         writeJson(response, store.exportServersJson());
+        return "NO_PAGE";
+    }
+
+    @ControllerMethodInfo(id = "/api/workspace/websocketStatus.do")
+    public String websocketStatus(HttpSession session, HttpServletRequest request,
+                                  HttpServletResponse response, Object command) throws Exception {
+        Object serverContainer = request.getServletContext()
+                .getAttribute("javax.websocket.server.ServerContainer");
+        JSONObject out = ok();
+        out.put("serverContainerAvailable", serverContainer != null);
+        out.put("serverContainerClass", serverContainer == null ? "" : serverContainer.getClass().getName());
+        out.put("sshEndpoint", request.getContextPath() + "/ssh-terminal");
+        out.put("localAgentEndpoint", request.getContextPath() + "/local-agent-terminal");
+        writeJson(response, out);
         return "NO_PAGE";
     }
 
