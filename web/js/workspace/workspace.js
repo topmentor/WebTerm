@@ -266,7 +266,7 @@
     function firstShellSession() {
         for (var i = 0; i < ssh.order.length; i++) {
             var session = ssh.sessions[ssh.order[i]];
-            if (session && session.kind !== 'agent') return session;
+            if (session && session.kind === 'shell') return session;
         }
         return null;
     }
@@ -508,6 +508,272 @@
         setStatus(id('sshConnectStatus'), '', '');
     }
 
+    function sftpCredentials(session) {
+        return {
+            host: session.info.host,
+            port: session.info.port,
+            username: session.info.username,
+            password: session.info.password || '',
+            privateKey: session.info.privateKey || '',
+            privateKeyPassphrase: session.info.privateKeyPassphrase || ''
+        };
+    }
+
+    function postSftp(session, action, data) {
+        var payload = sftpCredentials(session);
+        Object.keys(data || {}).forEach(function (key) {
+            payload[key] = data[key];
+        });
+        return postForm('/api/workspace/' + action + '.do', payload);
+    }
+
+    function createFileViewer() {
+        var current = activeSession();
+        var base = current && current.kind !== 'file' ? current : firstShellSession();
+        if (!base || !base.connected) {
+            setStatus(id('sshStatus'), '먼저 SSH 서버에 연결하세요.', 'err');
+            return;
+        }
+
+        setStatus(id('sshStatus'), 'SFTP 연결 중...', 'run');
+        postSftp(base, 'sftpList', { path: '.' }).then(function (data) {
+            var sessionId = 'file-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+            var panel = document.createElement('div');
+            panel.className = 'file-browser-panel';
+            panel.style.display = 'none';
+            id('sshTermContainer').appendChild(panel);
+
+            var session = {
+                id: sessionId,
+                kind: 'file',
+                info: base.info,
+                label: '파일 ' + labelOf(base.info),
+                panel: panel,
+                connected: true,
+                path: data.path || '.',
+                files: []
+            };
+            ssh.sessions[sessionId] = session;
+            ssh.order.push(sessionId);
+            renderFileBrowser(session, data);
+            setActiveSession(sessionId);
+            setStatus(id('sshStatus'), 'SFTP 연결됨: ' + session.path, 'ok');
+        }).catch(function (err) {
+            setStatus(id('sshStatus'), 'SFTP 연결 실패: ' + err.message, 'err');
+        });
+    }
+
+    function renderFileBrowser(session, data) {
+        session.path = data.path || session.path || '.';
+        session.files = data.files || [];
+        var panel = session.panel;
+        panel.innerHTML = '';
+
+        var toolbar = document.createElement('div');
+        toolbar.className = 'file-toolbar';
+
+        var up = makeFileButton('상위', function () {
+            if (data.parent) loadFilePath(session, data.parent);
+        });
+        up.disabled = !data.parent || data.parent === session.path;
+
+        var refresh = makeFileButton('새로고침', function () {
+            loadFilePath(session, session.path);
+        });
+
+        var mkdir = makeFileButton('새 폴더', function () {
+            var name = window.prompt('새 폴더 이름');
+            if (!name) return;
+            sftpAction(session, 'sftpMkdir', { path: joinRemotePath(session.path, name) });
+        });
+
+        var upload = makeFileButton('업로드', function () {
+            var input = panel.querySelector('.file-upload-input');
+            if (input) input.click();
+        });
+
+        var pathInput = document.createElement('input');
+        pathInput.className = 'file-path-input';
+        pathInput.value = session.path;
+        pathInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') loadFilePath(session, pathInput.value);
+        });
+
+        var uploadInput = document.createElement('input');
+        uploadInput.className = 'file-upload-input';
+        uploadInput.type = 'file';
+        uploadInput.multiple = true;
+        uploadInput.addEventListener('change', function () {
+            uploadFiles(session, uploadInput.files);
+            uploadInput.value = '';
+        });
+
+        toolbar.appendChild(up);
+        toolbar.appendChild(refresh);
+        toolbar.appendChild(mkdir);
+        toolbar.appendChild(upload);
+        toolbar.appendChild(pathInput);
+        toolbar.appendChild(uploadInput);
+
+        var tableWrap = document.createElement('div');
+        tableWrap.className = 'file-table-wrap';
+        var table = document.createElement('table');
+        table.className = 'file-table';
+        table.innerHTML = '<thead><tr><th>이름</th><th>크기</th><th>권한</th><th>수정일</th><th></th></tr></thead>';
+        var tbody = document.createElement('tbody');
+        session.files.sort(function (a, b) {
+            if (a.dir !== b.dir) return a.dir ? -1 : 1;
+            return a.name.localeCompare(b.name);
+        }).forEach(function (file) {
+            tbody.appendChild(renderFileRow(session, file));
+        });
+        table.appendChild(tbody);
+        tableWrap.appendChild(table);
+
+        var status = document.createElement('div');
+        status.className = 'file-status status-line';
+        status.textContent = session.files.length + '개 항목';
+
+        panel.appendChild(toolbar);
+        panel.appendChild(tableWrap);
+        panel.appendChild(status);
+    }
+
+    function makeFileButton(text, handler) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = text;
+        button.addEventListener('click', handler);
+        return button;
+    }
+
+    function renderFileRow(session, file) {
+        var tr = document.createElement('tr');
+        tr.className = file.dir ? 'is-dir' : 'is-file';
+
+        var name = document.createElement('td');
+        var nameButton = makeFileButton((file.dir ? '[DIR] ' : '') + file.name, function () {
+            if (file.dir) {
+                loadFilePath(session, file.path);
+            } else {
+                downloadFile(session, file.path);
+            }
+        });
+        nameButton.className = 'file-name-button';
+        name.appendChild(nameButton);
+
+        var size = document.createElement('td');
+        size.textContent = file.dir ? '-' : formatBytes(file.size);
+
+        var perms = document.createElement('td');
+        perms.textContent = file.permissions || '';
+
+        var modified = document.createElement('td');
+        modified.textContent = file.modified ? new Date(file.modified).toLocaleString() : '';
+
+        var actions = document.createElement('td');
+        actions.className = 'file-actions';
+        if (!file.dir) {
+            actions.appendChild(makeFileButton('다운로드', function () { downloadFile(session, file.path); }));
+        }
+        actions.appendChild(makeFileButton('이름변경', function () {
+            var nextName = window.prompt('새 이름', file.name);
+            if (!nextName || nextName === file.name) return;
+            sftpAction(session, 'sftpRename', {
+                from: file.path,
+                to: joinRemotePath(session.path, nextName)
+            });
+        }));
+        actions.appendChild(makeFileButton('삭제', function () {
+            if (!window.confirm(file.name + ' 삭제?')) return;
+            sftpAction(session, 'sftpDelete', { path: file.path, dir: file.dir ? 'true' : 'false' });
+        }));
+
+        tr.appendChild(name);
+        tr.appendChild(size);
+        tr.appendChild(perms);
+        tr.appendChild(modified);
+        tr.appendChild(actions);
+        return tr;
+    }
+
+    function loadFilePath(session, path) {
+        setStatus(id('sshStatus'), '파일 목록 로딩 중...', 'run');
+        postSftp(session, 'sftpList', { path: path }).then(function (data) {
+            renderFileBrowser(session, data);
+            updateHeaderStatus();
+        }).catch(function (err) {
+            setStatus(id('sshStatus'), '파일 목록 실패: ' + err.message, 'err');
+        });
+    }
+
+    function sftpAction(session, action, data) {
+        setStatus(id('sshStatus'), 'SFTP 작업 중...', 'run');
+        postSftp(session, action, data).then(function () {
+            loadFilePath(session, session.path);
+        }).catch(function (err) {
+            setStatus(id('sshStatus'), 'SFTP 작업 실패: ' + err.message, 'err');
+        });
+    }
+
+    function uploadFiles(session, files) {
+        if (!files || !files.length) return;
+        var form = new FormData();
+        var credentials = sftpCredentials(session);
+        Object.keys(credentials).forEach(function (key) {
+            form.append(key, credentials[key] == null ? '' : credentials[key]);
+        });
+        form.append('path', session.path);
+        Array.prototype.forEach.call(files, function (file) {
+            form.append('file', file, file.name);
+        });
+        setStatus(id('sshStatus'), '업로드 중...', 'run');
+        fetch(apiUrl('/api/workspace/sftpUpload.do'), { method: 'POST', body: form })
+            .then(parseJsonResponse)
+            .then(function () { loadFilePath(session, session.path); })
+            .catch(function (err) {
+                setStatus(id('sshStatus'), '업로드 실패: ' + err.message, 'err');
+            });
+    }
+
+    function downloadFile(session, path) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = apiUrl('/api/workspace/sftpDownload.do');
+        form.style.display = 'none';
+        var data = sftpCredentials(session);
+        data.path = path;
+        Object.keys(data).forEach(function (key) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = data[key] == null ? '' : data[key];
+            form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+
+    function joinRemotePath(dir, name) {
+        var left = dir || '.';
+        var right = String(name || '').replace(/^\/+/, '');
+        if (left === '/') return '/' + right;
+        return left.replace(/\/+$/, '') + '/' + right;
+    }
+
+    function formatBytes(value) {
+        var size = Number(value) || 0;
+        if (size < 1024) return size + ' B';
+        var units = ['KB', 'MB', 'GB', 'TB'];
+        var idx = -1;
+        do {
+            size = size / 1024;
+            idx++;
+        } while (size >= 1024 && idx < units.length - 1);
+        return size.toFixed(size >= 10 ? 0 : 1) + ' ' + units[idx];
+    }
+
     function createSession(info, options) {
         options = options || {};
         var sessionId = 'ssh-' + Date.now() + '-' + Math.random().toString(36).slice(2);
@@ -707,7 +973,7 @@
             session.panel.style.display = '';
             id('sshPlaceholder').style.display = 'none';
             resizeSession(session);
-            session.term.focus();
+            if (session.term) session.term.focus();
         } else {
             id('sshPlaceholder').style.display = '';
         }
@@ -720,11 +986,17 @@
         if (!session) {
             setStatus(id('sshStatus'), '미연결', '');
             id('disconnectSsh').disabled = true;
+            id('openFileViewer').disabled = !firstShellSession() || !firstShellSession().connected;
             updateAgentActionState();
             return;
         }
         id('disconnectSsh').disabled = false;
-        setStatus(id('sshStatus'), session.label + (session.connected ? '' : ' 연결 중'), session.connected ? 'ok' : 'run');
+        id('openFileViewer').disabled = !firstShellSession() || !firstShellSession().connected;
+        if (session.kind === 'file') {
+            setStatus(id('sshStatus'), 'SFTP: ' + (session.path || session.label), 'ok');
+        } else {
+            setStatus(id('sshStatus'), session.label + (session.connected ? '' : ' 연결 중'), session.connected ? 'ok' : 'run');
+        }
         updateAgentActionState();
     }
 
@@ -836,7 +1108,8 @@
     function runAgentRemote(mode) {
         var launch = mode === 'start';
         var login = mode === 'login';
-        var base = activeSession() || firstShellSession();
+        var current = activeSession();
+        var base = current && current.kind === 'shell' ? current : firstShellSession();
         if (!base || !base.connected) {
             setStatus(id('agentStatus'), '먼저 SSH 서버에 연결하세요.', 'err');
             updateAgentActionState();
@@ -1047,6 +1320,7 @@
         workspaceInitialized = true;
 
         id('openSshDialog').addEventListener('click', function () { openSshDialog(); });
+        id('openFileViewer').addEventListener('click', createFileViewer);
         id('cancelSshDialog').addEventListener('click', closeSshDialog);
         id('connectSsh').addEventListener('click', connectFromDialog);
         id('disconnectSsh').addEventListener('click', function () {

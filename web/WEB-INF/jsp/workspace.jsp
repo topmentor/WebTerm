@@ -141,7 +141,7 @@
     <section class="workspace-grid" id="workspaceGrid">
         <section class="workspace-pane" id="sshPane">
             <div class="pane-header">
-                <span>SSH 셸</span>
+                <span class="pane-title-actions"><span>SSH 셸</span><button id="openFileViewer" type="button" disabled>파일보기</button></span>
                 <span id="sshStatus" class="status-line">미연결</span>
             </div>
             <div id="sshTabs" class="ssh-tabs"></div>

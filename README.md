@@ -11,6 +11,9 @@ WebTerm은 브라우저에서 SSH 터미널과 원격 AI CLI 작업 공간을 �
 - 브라우저 SSH 터미널: `/terminal.do`
 - SSH/Codex 워크스페이스: `/workspace.do`
 - 여러 SSH 세션 탭 관리
+- SSH 접속 정보 재사용 기반 SFTP 파일 탐색기 탭
+- 원격 파일/디렉터리 목록 조회, 이동, 생성, 이름 변경, 삭제
+- 원격 파일 다운로드 및 로컬 파일 업로드
 - 내부 SQLite DB 기반 WebTerm 로그인
 - 로그아웃 및 재로그인 흐름
 - 저장한 SSH 서버 목록 관리
@@ -110,6 +113,12 @@ mvn -f pom-embedded.xml clean package
 | `/api/workspace/getSettings.do` | 워크스페이스 설정 조회 |
 | `/api/workspace/saveSettings.do` | 워크스페이스 설정 저장 |
 | `/api/workspace/exportServers.do` | 저장 서버 목록 JSON Export |
+| `/api/workspace/sftpList.do` | SFTP 디렉터리 목록 조회 |
+| `/api/workspace/sftpMkdir.do` | SFTP 원격 디렉터리 생성 |
+| `/api/workspace/sftpRename.do` | SFTP 원격 파일/디렉터리 이름 변경 |
+| `/api/workspace/sftpDelete.do` | SFTP 원격 파일/디렉터리 삭제 |
+| `/api/workspace/sftpDownload.do` | SFTP 원격 파일 다운로드 |
+| `/api/workspace/sftpUpload.do` | SFTP 원격 파일 업로드 |
 | `/docs/` | Swagger UI |
 | `/docs/api-docs` | OpenAPI 3.0 JSON |
 
@@ -122,8 +131,10 @@ mvn -f pom-embedded.xml clean package
 3. `SSH 연결` 버튼으로 호스트, 포트, ID, PW를 입력합니다.
 4. 필요하면 접속 정보를 저장합니다.
 5. SSH 탭에서 셸을 사용하거나, `자주 쓰는 명령`에 명령을 등록해 빠르게 실행합니다.
-6. 데스크톱에서는 오른쪽 AI 도구 영역에서 `Codex` 또는 `Claude Code`를 선택하고 원격 SSH 서버에서 로그인/실행할 수 있습니다.
-7. 로그아웃 버튼을 누르면 서버 세션이 종료되고 다시 로그인 다이어로그로 돌아갑니다.
+6. `SSH 셸` 제목 옆의 `파일보기` 버튼을 누르면 현재 SSH 접속 정보로 SFTP에 연결하고 새 파일 탭을 엽니다.
+7. 파일 탭에서 경로 이동, 새 폴더 생성, 이름 변경, 삭제, 다운로드, 업로드를 수행합니다.
+8. 데스크톱에서는 오른쪽 AI 도구 영역에서 `Codex` 또는 `Claude Code`를 선택하고 원격 SSH 서버에서 로그인/실행할 수 있습니다.
+9. 로그아웃 버튼을 누르면 서버 세션이 종료되고 다시 로그인 다이어로그로 돌아갑니다.
 
 단일 터미널만 필요하면 `/terminal.do`를 사용하면 됩니다.
 
@@ -180,9 +191,10 @@ data.db
 | 웹 런타임 | Servlet/JSP, Embedded Tomcat 9 |
 | 터미널 UI | xterm.js, xterm-addon-fit |
 | WebSocket | Java WebSocket API |
-| SSH | JSch |
+| SSH/SFTP | JSch |
 | 로컬 저장소 | SQLite JDBC |
 | JSON | org.json, Jackson |
+| 클래스 스캔 | Reflections, Javassist |
 | 빌드 | Maven, Ant |
 | 뷰 | JSP |
 
@@ -297,7 +309,50 @@ WebTerm/
 - 저장된 SSH 접속 정보는 `data.db`에 저장됩니다.
 - `SecurityFilter`는 `*.do` 요청에 대해 보안 헤더, XSS 필터링, 선택적 CSRF, Rate Limiting을 적용합니다.
 - `@ApiKeyRequired`가 붙은 API는 `X-API-Key` 헤더를 검증합니다.
+- SFTP 파일보기 기능은 활성 SSH 탭의 접속 정보를 브라우저 메모리에서 재사용해 요청마다 새 SFTP 연결을 열고 닫습니다.
+- SFTP 다운로드/업로드 API는 SSH 비밀번호 또는 private key를 요청 파라미터로 받아 처리하므로 HTTPS 적용을 권장합니다.
 - 외부에 노출되는 환경에서는 HTTPS, 접근 제어, DB 파일 권한, 비밀번호 암호화, 기본 계정 변경, 호스트 키 검증을 반드시 검토하세요.
+
+---
+
+## 문제 해결
+
+### Maven clean이 `target/embedded-webapp` 파일 삭제에 실패할 때
+
+Windows에서는 실행 중인 Embedded Tomcat이 `target/embedded-webapp/WEB-INF/lib/*.jar`를 클래스패스로 잡고 있으면 `mvn clean`이 실패할 수 있습니다.
+
+```text
+Failed to delete ... target\embedded-webapp\WEB-INF\lib\zip4j-2.11.5.jar
+```
+
+해결:
+
+```powershell
+Get-NetTCPConnection -LocalPort 8088 -ErrorAction SilentlyContinue
+Get-CimInstance Win32_Process |
+  Where-Object { $_.CommandLine -like '*com.ithows.EmbeddedApplication*' } |
+  Select-Object ProcessId,Name,CommandLine
+Stop-Process -Id <ProcessId> -Force
+```
+
+서버를 종료한 뒤 `mvn clean package` 또는 `mvn -f pom-embedded.xml clean package`를 다시 실행합니다.
+
+### `invalid constant type: 18`로 앱 기동이 실패할 때
+
+`org.reflections.ReflectionsException`과 함께 아래 오류가 발생하면 오래된 Javassist가 Java 8+ 바이트코드를 읽지 못하는 상태입니다.
+
+```text
+Caused by: java.io.IOException: invalid constant type: 18
+```
+
+현재 POM은 `reflections`의 구 `javassist:javassist` 전이 의존성을 제외하고 `org.javassist:javassist:3.29.2-GA`를 명시합니다. 빌드 산출물에는 `WEB-INF/lib/javassist-3.29.2-GA.jar`만 포함되어야 합니다.
+
+확인:
+
+```bash
+mvn -f pom-embedded.xml clean package
+jar tf target/WebTerm-embedded.war | grep javassist
+```
 
 ---
 
