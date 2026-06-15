@@ -43,10 +43,6 @@ WebTerm은 브라우저에서 SSH 터미널과 원격 AI CLI 작업 공간을 �
 
 `/workspace.do` 최초 접속 시 WebTerm 로그인 다이어로그가 표시됩니다.
 
-```text
-ID: soxuser
-PW: sox2018
-```
 
 이 계정은 내부 SQLite DB의 `webterm_users` 테이블에 자동 저장/갱신됩니다. 외부에 노출되는 환경에서는 기본 계정과 비밀번호 정책을 반드시 변경하세요.
 
